@@ -9,6 +9,7 @@ conda install pytorch torchvision -c pytorch
 pip install -U scikit-learn
 scipy
 anaconda (!!!!! upload the environment file !!!!) 
+matplotlib
 
 For Windows 
 conda install pytorch torchvision cuda91 -c pytorch 
