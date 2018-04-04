@@ -102,3 +102,6 @@ ENV/
 
 #data
 data/
+
+#data_bci
+data_bci/
