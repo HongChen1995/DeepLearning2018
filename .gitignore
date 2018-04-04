@@ -105,3 +105,9 @@ data/
 
 #data_bci
 data_bci/
+
+#data_bci_100Hz
+data_bci_100Hz/
+
+#data_bci_1000Hz
+data_bci_1000Hz/
