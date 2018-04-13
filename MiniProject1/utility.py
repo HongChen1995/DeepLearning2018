@@ -70,13 +70,18 @@ def normalizedSignalFeatures(inputData, time):
     numberElectrodes = (np.array(inputData[0, :, 0])).size
     numberTimePoints = (np.array(inputData[0, 0, :])).size
     numberExtractedMaximaPerPatient = np.zeros(numberSamples)
-    extractedFeatures = np.zeros((numberSamples, 6))
+    numberExtractedMinimaPerPatient = np.zeros(numberSamples)
+    extractedFeatures = np.zeros((numberSamples, 11))
 
     #needs to be computationnally optimized by using the operations shown in the exercises 
     for i in range (0, numberSamples): 
         relmaxValue = np.zeros((0, 5))
         relmaxTime = np.zeros((0, 5))
+        relminValue = np.zeros((0, 5))
+        relminTime = np.zeros((0, 5))
         numberExtractedMaxima = np.zeros(numberElectrodes)
+        numberExtractedMinima = np.zeros(numberElectrodes)
+
         for j in range (0, numberElectrodes): 
             signal = np.array(inputData[i, j, :])        
             data = np.array(signal)
@@ -88,7 +93,7 @@ def normalizedSignalFeatures(inputData, time):
             for p in range(len(bp)): 
                 if p>=10:
                     bp[p]=0
-            ibp=scipy.ifft(bp) 
+            ibp=scipy.ifft(bp)
 
             ibp = scipy.signal.detrend(ibp) #signal detrending
 
@@ -97,11 +102,18 @@ def normalizedSignalFeatures(inputData, time):
 
             #Find the local maxima of the model (times of the local maxima actually)
             relmax = scipy.signal.argrelmax(ibp)
+            relmin = scipy.signal.argrelmin(ibp)
             
-            numberExtractedMaxima[j]=relmax[0].size            
+            numberExtractedMaxima[j]=relmax[0].size
+            numberExtractedMinima[j]=relmin[0].size            
+
             #print(relmax[0].size)
             if (relmax[0].size == 5): # !!!!! THERE ARE NOT ALWAYS 5 MAXIMA BUT HOW TO SET THE BEST VALUE ????
                 relmaxTime=np.append(relmaxTime, time[relmax].reshape((1,5)), axis=0)
+                #relmaxValue=np.append(relmaxValue, ibp[relmax].reshape((1,5)), axis=0)
+                
+            if (relmin[0].size == 5): # !!!!! THERE ARE NOT ALWAYS 5 MAXIMA BUT HOW TO SET THE BEST VALUE ????
+                relminTime=np.append(relminTime, time[relmin].reshape((1,5)), axis=0)
                 #relmaxValue=np.append(relmaxValue, ibp[relmax].reshape((1,5)), axis=0)
 
       
@@ -109,9 +121,14 @@ def normalizedSignalFeatures(inputData, time):
         numberExtractedMaximaPerPatient[i] = np.median(numberExtractedMaxima)
         featuresTime = np.median(relmaxTime, axis=0)
         #featuresAmplitude = relmaxValue.mean(axis=0) #mean per columns 
+        
+        numberExtractedMinimaPerPatient[i] = np.median(numberExtractedMinima)
+        featuresTimeMin = np.median(relminTime, axis=0)
 
         if not(np.isnan(np.min(featuresTime))): 
             extractedFeatures[i, [0,1,2,3,4]] = featuresTime
+        if not(np.isnan(np.min(featuresTimeMin))): 
+            extractedFeatures[i, [6,7,8,9,10]] = featuresTimeMin
     
     extractedFeatures[:,5] = numberExtractedMaximaPerPatient.reshape(numberExtractedMaximaPerPatient.shape)
     print(extractedFeatures)
