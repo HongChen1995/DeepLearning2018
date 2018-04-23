@@ -71,7 +71,7 @@ def normalizedSignalFeatures(inputData, time):
     numberTimePoints = (np.array(inputData[0, 0, :])).size
     numberExtractedMaximaPerPatient = np.zeros(numberSamples)
     numberExtractedMinimaPerPatient = np.zeros(numberSamples)
-    extractedFeatures = np.zeros((numberSamples, 11))
+    extractedFeatures = np.zeros((numberSamples, 21))
 
     #needs to be computationnally optimized by using the operations shown in the exercises 
     for i in range (0, numberSamples): 
@@ -110,25 +110,30 @@ def normalizedSignalFeatures(inputData, time):
             #print(relmax[0].size)
             if (relmax[0].size == 5): # !!!!! THERE ARE NOT ALWAYS 5 MAXIMA BUT HOW TO SET THE BEST VALUE ????
                 relmaxTime=np.append(relmaxTime, time[relmax].reshape((1,5)), axis=0)
-                #relmaxValue=np.append(relmaxValue, ibp[relmax].reshape((1,5)), axis=0)
+                relmaxValue=np.append(relmaxValue, np.real(ibp[relmax].reshape((1,5))), axis=0)
                 
             if (relmin[0].size == 5): # !!!!! THERE ARE NOT ALWAYS 5 MAXIMA BUT HOW TO SET THE BEST VALUE ????
                 relminTime=np.append(relminTime, time[relmin].reshape((1,5)), axis=0)
-                #relmaxValue=np.append(relmaxValue, ibp[relmax].reshape((1,5)), axis=0)
+                relmaxValueMin=np.append(relmaxValue, np.real(ibp[relmin].reshape((1,5))), axis=0)
 
       
         #featuresTime = np.median(relmaxTime, axis=0)
         numberExtractedMaximaPerPatient[i] = np.median(numberExtractedMaxima)
         featuresTime = np.median(relmaxTime, axis=0)
-        #featuresAmplitude = relmaxValue.mean(axis=0) #mean per columns 
+        featuresAmplitude = np.median(relmaxValue, axis=0) #mean per columns 
         
         numberExtractedMinimaPerPatient[i] = np.median(numberExtractedMinima)
         featuresTimeMin = np.median(relminTime, axis=0)
+        featuresAmplitudeMin = np.median(relmaxValueMin, axis=0) #mean per columns 
 
         if not(np.isnan(np.min(featuresTime))): 
             extractedFeatures[i, [0,1,2,3,4]] = featuresTime
         if not(np.isnan(np.min(featuresTimeMin))): 
             extractedFeatures[i, [6,7,8,9,10]] = featuresTimeMin
+        if not(np.isnan(np.min(featuresAmplitude))): 
+            extractedFeatures[i, [11,12,13,14,15]] = featuresAmplitude
+        if not(np.isnan(np.min(featuresAmplitudeMin))): 
+            extractedFeatures[i, [16,17,18,19,20]] = featuresAmplitudeMin
     
     extractedFeatures[:,5] = numberExtractedMaximaPerPatient.reshape(numberExtractedMaximaPerPatient.shape)
     print(extractedFeatures)
