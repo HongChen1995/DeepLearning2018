@@ -3,6 +3,7 @@ import numpy as np
 from scipy import signal
 import scipy
 from scipy.signal import find_peaks_cwt
+import matplotlib.pyplot as plt
 
 #uploads the data-sets have been downscaled to a 100Hz sampling rate
 def import100HzData():
@@ -139,3 +140,113 @@ def normalizedSignalFeatures(inputData, time):
     print(extractedFeatures)
         
     return extractedFeatures
+
+def normalizedSignals(inputData, time, plot, title): 
+    #IMPORTANT !! needs to be computationnally optimized by using the operations shown in the exercises 
+    
+    plt.cla()
+    plt.clf()
+    plt.close()
+    
+    normalizedOutput = np.zeros(inputData.shape)
+    numberSamples = (np.array(inputData[:, 0, 0])).size
+    numberElectrodes = (np.array(inputData[0, :, 0])).size
+
+    for i in range (0, numberSamples): 
+        for j in range (0, numberElectrodes): 
+            signal = np.array(inputData[i, j, :])        
+            data = np.array(signal)
+
+            fft=scipy.fft(data) #signal denoising 
+            bp=fft[:]
+            for p in range(len(bp)): 
+                if p>=10:
+                    bp[p]=0
+            ibp=scipy.ifft(bp)
+
+            ibp = scipy.signal.detrend(ibp) #signal detrending
+
+            #ibp = (ibp-ibp[0])/max(max(ibp), abs(min(ibp))) #signal normalization with initial offset suprresion 
+            ibp = (ibp-np.mean(ibp))/np.std(ibp) #signal normalization with initial offset suprresion 
+            
+            normalizedOutput[i,j,:] = ibp.real
+            
+            if plot and i % 80 == 0: 
+                plt.plot(time, ibp.real)
+                plt.xlabel('time (ms)')
+                plt.ylabel('Voltage (µV)')
+                plt.title(title) 
+        
+            
+        if plot and i % 80 == 0: 
+            plt.show()
+    return normalizedOutput
+
+def normalizedSingleSignals(inputData, time, idx,plot, title): 
+    #IMPORTANT !! needs to be computationnally optimized by using the operations shown in the exercises 
+    
+    normalizedOutput = np.zeros(inputData.shape)
+    numberSamples = (np.array(inputData[:, 0, 0])).size
+    numberElectrodes = (np.array(inputData[0, :, 0])).size
+
+    for j in range (0, numberElectrodes): 
+        signal = np.array(inputData[idx, j, :])        
+        data = np.array(signal)
+
+        fft=scipy.fft(data) #signal denoising 
+        bp=fft[:]
+        for p in range(len(bp)): 
+            if p>=10:
+                bp[p]=0
+        ibp=scipy.ifft(bp)
+
+        ibp = scipy.signal.detrend(ibp) #signal detrending
+
+        #ibp = (ibp-ibp[0])/max(max(ibp), abs(min(ibp))) #signal normalization with initial offset suprresion 
+        ibp = (ibp-np.mean(ibp))/np.std(ibp) #signal normalization with initial offset suprresion 
+
+        if plot: 
+            plt.plot(time, ibp.real)
+            plt.xlabel('time (ms)')
+            plt.ylabel('Voltage (µV)')
+            plt.title(title) 
+
+    if plot: 
+        plt.show()
+    return  ibp.real
+
+def rawDataForSingleElectrodeVisualization(train_input): 
+    inputlen = np.array(train_input[0, :, 0])
+
+    for i in range (0,inputlen.size) :
+        time = np.linspace(0, 500, 50)
+        data = train_input[0, i, :] #observing the samples n°1 for all time steps and all the electodes 
+        data = np.array(data)
+        plt.plot(time, data)
+        plt.title('Simple plot of electrode n°' + str(i)) 
+        plt.xlabel('time (ms)')
+        plt.ylabel('Voltage (µV)')
+        plt.show() #enables to show all electrodes separately 
+
+    for i in range (0,inputlen.size) :
+        time = np.linspace(0, 500, 50)
+        data = train_input[0, i, :]
+        data = np.array(data)
+        plt.plot(time, data)
+        plt.xlabel('time (ms)')
+        plt.ylabel('Voltage (µV)')
+        plt.title('Simple plot of all electrodes') 
+        plt.show() #enables to show all electrodes separately 
+
+def rawDataVisualization(train_input, idx, title):
+    inputlen = np.array(train_input[0, :, 0])
+    
+    for i in range (0,inputlen.size) :
+        time = np.linspace(0, 500, 50)
+        data = train_input[idx, i, :]
+        data = np.array(data)
+        plt.plot(time, data)
+        plt.xlabel('time (ms)')
+        plt.ylabel('Voltage (µV)')
+        plt.title(title) 
+    plt.show()  
