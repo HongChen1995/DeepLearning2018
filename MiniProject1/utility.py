@@ -250,3 +250,28 @@ def rawDataVisualization(train_input, idx, title):
         plt.ylabel('Voltage (µV)')
         plt.title(title) 
     plt.show()  
+    
+def cross_validation(dataset):
+    
+    lengthDataSet = len(dataset[:,0,0])
+    
+    print(len(dataset[:,0,0]))
+    print(lengthDataSet/4)
+    
+    x1=np.delete(dataset,range(0,int(lengthDataSet/4)),axis=0)
+    x2=np.delete(dataset,range(int(lengthDataSet/4),int(2*lengthDataSet/4)),axis=0)
+    x3=np.delete(dataset,range(int(2*lengthDataSet/4),int(3*lengthDataSet/4)),axis=0)
+    x4=np.delete(dataset,range(int(3*lengthDataSet/4),int(lengthDataSet)),axis=0)
+
+    return x1, x2, x3, x4
+
+def cross_validation_labels(dataset):
+    
+    lengthDataSet = len(dataset)
+    
+    y1=np.delete(dataset,range(0,int(lengthDataSet/4)),axis=0)
+    y2=np.delete(dataset,range(int(lengthDataSet/4),int(2*lengthDataSet/4)),axis=0)
+    y3=np.delete(dataset,range(int(2*lengthDataSet/4),int(3*lengthDataSet/4)),axis=0)
+    y4=np.delete(dataset,range(int(3*lengthDataSet/4),int(lengthDataSet)),axis=0)
+
+    return y1, y2, y3, y4
