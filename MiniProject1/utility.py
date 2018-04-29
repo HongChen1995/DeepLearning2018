@@ -217,9 +217,10 @@ def normalizedSingleSignals(inputData, time, idx,plot, title):
 
 def rawDataForSingleElectrodeVisualization(train_input): 
     inputlen = np.array(train_input[0, :, 0])
+    inputlentime = len(np.array(train_input[0, 0, :]))
 
     for i in range (0,inputlen.size) :
-        time = np.linspace(0, 500, 50)
+        time = np.linspace(0, 500, inputlentime)
         data = train_input[0, i, :] #observing the samples n°1 for all time steps and all the electodes 
         data = np.array(data)
         plt.plot(time, data)
@@ -229,7 +230,7 @@ def rawDataForSingleElectrodeVisualization(train_input):
         plt.show() #enables to show all electrodes separately 
 
     for i in range (0,inputlen.size) :
-        time = np.linspace(0, 500, 50)
+        time = np.linspace(0, 500, inputlentime)
         data = train_input[0, i, :]
         data = np.array(data)
         plt.plot(time, data)
@@ -240,9 +241,10 @@ def rawDataForSingleElectrodeVisualization(train_input):
 
 def rawDataVisualization(train_input, idx, title):
     inputlen = np.array(train_input[0, :, 0])
+    inputlentime = len(np.array(train_input[0, 0, :]))
     
     for i in range (0,inputlen.size) :
-        time = np.linspace(0, 500, 50)
+        time = np.linspace(0, 500, inputlentime)
         data = train_input[idx, i, :]
         data = np.array(data)
         plt.plot(time, data)
