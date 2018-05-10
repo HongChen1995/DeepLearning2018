@@ -397,11 +397,6 @@ def noise(X, intensity):
 def shift(X, shift): 
     return np.roll(X, shift)
 
-import librosa
-
-def stretch(data, rate=1):
-    return librosa.effects.time_stretch(data, rate)
-
 def denoisedSignals(inputData): 
     #IMPORTANT !! needs to be computationnally optimized by using the operations shown in the exercises 
     
