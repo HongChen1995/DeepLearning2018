@@ -4,6 +4,7 @@ from scipy import signal
 import scipy
 from scipy.signal import find_peaks_cwt
 import matplotlib.pyplot as plt
+import random
 
 #uploads the data-sets have been downscaled to a 100Hz sampling rate
 def import100HzData():
@@ -426,7 +427,7 @@ def denoisedSignals(inputData):
             normalizedOutput[i,j,:] = ibp.real
     return normalizedOutput
 
-def preprocessing_train(train_input, train_target, denoize=False, addGaussianNoise=False):
+def preprocessing_train_100(train_input, train_target, denoize=False, addGaussianNoise=False):
     
     #denoise and normalize data (without detrending and so)
     tmp = np.array(train_input)
@@ -436,7 +437,7 @@ def preprocessing_train(train_input, train_target, denoize=False, addGaussianNoi
         tmp = denoisedSignals(tmp) #Deletes the high frequencies 
 
     augmented_train_input = tmp[:,:,0::10]
-    idxToDelete = np.random.choice(range(len(augmented_train_input[:,0,0])), 16) #takes 16 lines as a validation set
+    idxToDelete = random.sample(range(len(augmented_train_input[:,0,0])), 16) #takes 16 lines as a validation set
     augmented_train_input_validation = tmp[idxToDelete,:,0::10]
     augmented_train_input_validation_target = tmp_target[idxToDelete]
     augmented_train_input_train = np.delete(augmented_train_input, idxToDelete, 0)
@@ -447,10 +448,60 @@ def preprocessing_train(train_input, train_target, denoize=False, addGaussianNoi
     final_augmented_train_input_train_target = augmented_train_input_train_target
     final_augmented_train_input_validation_target = augmented_train_input_validation_target
 
-    for i in range(1, 9): 
+    for i in range(1, 10):
         augmented_train_input = tmp[:,:,i::10]
-        idxToDelete = np.random.choice(range(len(augmented_train_input[:,0,0])), 16) #takes 16 lines as a validation set
-        augmented_train_input_validation = tmp[idxToDelete,:,0::10]
+        #idxToDelete = random.sample(range(len(augmented_train_input[:,0,0])), 16) #takes 16 lines as a validation set
+        augmented_train_input_validation = tmp[idxToDelete,:,i::10]
+        augmented_train_input_validation_target = tmp_target[idxToDelete]
+        augmented_train_input_train = np.delete(augmented_train_input, idxToDelete, 0)
+        augmented_train_input_target = np.delete(train_target, idxToDelete, 0)
+        
+        final_augmented_train_input_train = np.concatenate((final_augmented_train_input_train, augmented_train_input_train))
+        final_augmented_train_input_validation = np.concatenate((final_augmented_train_input_validation, augmented_train_input_validation))
+        final_augmented_train_input_train_target = np.concatenate((final_augmented_train_input_train_target, augmented_train_input_target))
+        final_augmented_train_input_validation_target = np.concatenate((final_augmented_train_input_validation_target, augmented_train_input_validation_target))
+
+    if(addGaussianNoise):
+        noise_tensor = np.zeros(final_augmented_train_input_train.shape)
+        for i in range (final_augmented_train_input_train.shape[0]):
+            noiseIntensity = 0.1*np.max(final_augmented_train_input_train[i,:,:])
+            noise_tensor[i, :, :] = noise(final_augmented_train_input_train[i,:,:], noiseIntensity)
+        return noise_tensor, final_augmented_train_input_validation, final_augmented_train_input_train_target, final_augmented_train_input_validation_target
+    
+    return final_augmented_train_input_train, final_augmented_train_input_validation, final_augmented_train_input_train_target, final_augmented_train_input_validation_target
+
+def preprocessing_test_100(test_input, denoize = False):
+    #denoise and normalize data (without detrending and so)
+    tmp = np.array(test_input)
+    if denoize:
+        tmp = denoisedSignals(tmp)
+    return tmp
+
+def preprocessing_train_20(train_input, train_target, denoize=False, addGaussianNoise=False):
+    
+    #denoise and normalize data (without detrending and so)
+    tmp = np.array(train_input)
+    tmp_target = np.array(train_target)
+    
+    if denoize:
+        tmp = denoisedSignals(tmp) #Deletes the high frequencies 
+
+    augmented_train_input = tmp[:,:,0::50]
+    idxToDelete = random.sample(range(len(augmented_train_input[:,0,0])), 16) #takes 16 lines as a validation set
+    augmented_train_input_validation = tmp[idxToDelete,:,0::50]
+    augmented_train_input_validation_target = tmp_target[idxToDelete]
+    augmented_train_input_train = np.delete(augmented_train_input, idxToDelete, 0)
+    augmented_train_input_train_target = np.delete(train_target, idxToDelete, 0)
+    
+    final_augmented_train_input_train = augmented_train_input_train
+    final_augmented_train_input_validation = augmented_train_input_validation
+    final_augmented_train_input_train_target = augmented_train_input_train_target
+    final_augmented_train_input_validation_target = augmented_train_input_validation_target
+
+    for i in range(1, 50):
+        augmented_train_input = tmp[:,:,i::50]
+        #idxToDelete = random.sample(range(len(augmented_train_input[:,0,0])), 16) #takes 16 lines as a validation set
+        augmented_train_input_validation = tmp[idxToDelete,:,i::50]
         augmented_train_input_validation_target = tmp_target[idxToDelete]
         augmented_train_input_train = np.delete(augmented_train_input, idxToDelete, 0)
         augmented_train_input_target = np.delete(train_target, idxToDelete, 0)
@@ -467,11 +518,25 @@ def preprocessing_train(train_input, train_target, denoize=False, addGaussianNoi
             noise_tensor[i , :, :] = noise(augmented_train_input_train[i,:,:], noiseIntensity)
         return noise_tensor, final_augmented_train_input_validation
     
-    return final_augmented_train_input_train, final_augmented_train_input_validation, final_augmented_train_input_train_target, final_augmented_train_input_validation_target 
+    return final_augmented_train_input_train, final_augmented_train_input_validation, final_augmented_train_input_train_target, final_augmented_train_input_validation_target
 
-def preprocessing_test(test_input, denoize = False):
+def preprocessing_test_20(test_input, test_target, denoize = False):
     #denoise and normalize data (without detrending and so)
     tmp = np.array(test_input)
+    tmp_target = np.array(test_target)
+    
     if denoize:
-        tmp = denoisedSignals(tmp)
-    return tmp
+        tmp = denoisedSignals(tmp) #Deletes the high frequencies 
+
+    final_augmented_test = tmp[:,:,0::50]
+    final_augmented_target = tmp_target.copy()
+    
+
+    for i in range(1, 50):
+        augmented_test_input = tmp[:,:,i::50]
+        
+        final_augmented_test = np.concatenate((final_augmented_test, augmented_test_input))
+        final_augmented_target = np.concatenate((final_augmented_target, tmp_target))
+
+    
+    return final_augmented_test, final_augmented_target
