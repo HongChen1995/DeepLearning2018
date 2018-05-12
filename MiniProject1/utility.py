@@ -427,6 +427,7 @@ def preprocessing_train_100(train_input, train_target, denoize=False, addGaussia
     #denoise and normalize data (without detrending and so)
     tmp = np.array(train_input)
     tmp_target = np.array(train_target)
+    tmp_idx=[]
     
     #reduces the number of channels to only those with low correlations (ie. the most different between "0" labeled and "1" labelled) 
     if reduceChannels: 
@@ -493,6 +494,8 @@ def preprocessing_train_20(train_input, train_target, denoize=False, addGaussian
     tmp = np.array(train_input)
     tmp_target = np.array(train_target)
     
+    tmp_idx=[]
+    
     #reduces the number of channels to only those with low correlations (ie. the most different between "0" labeled and "1" labelled) 
     if reduceChannels: 
         tmp_idx = reduceChannels(train_input, train_target, channelsKept = 10)
@@ -539,7 +542,7 @@ def preprocessing_train_20(train_input, train_target, denoize=False, addGaussian
     return final_augmented_train_input_train, final_augmented_train_input_validation, final_augmented_train_input_train_target, final_augmented_train_input_validation_target, tmp_idx
 
 #test_input is the 1000Hz version
-def preprocessing_test_20(test_input, denoize = False):
+def preprocessing_test_20(test_input, tmp_idx, denoize = False, reduceChannels=False, cutEnd=False):
     #denoise and normalize data (without detrending and so)
     tmp = np.array(test_input)
     
