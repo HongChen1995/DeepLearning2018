@@ -422,11 +422,19 @@ def denoisedSignals(inputData):
             normalizedOutput[i,j,:] = ibp.real
     return normalizedOutput
 
-def preprocessing_train_100(train_input, train_target, denoize=False, addGaussianNoise=False):
-    
+def preprocessing_train_100(train_input, train_target, denoize=False, addGaussianNoise=False, reduceChannels=False, cutEnd = False):
+    random.seed(7)
     #denoise and normalize data (without detrending and so)
     tmp = np.array(train_input)
     tmp_target = np.array(train_target)
+    
+    #reduces the number of channels to only those with low correlations (ie. the most different between "0" labeled and "1" labelled) 
+    if reduceChannels: 
+        tmp_idx = channelReduction(train_input, train_target, channelsKept = 10)
+        tmp = tmp[:,tmp_idx,:]
+        
+    if cutEnd: 
+        tmp = tmp[:, :, 0:400]
     
     if denoize:
         tmp = denoisedSignals(tmp) #Deletes the high frequencies 
@@ -463,20 +471,35 @@ def preprocessing_train_100(train_input, train_target, denoize=False, addGaussia
             noise_tensor[i, :, :] = noise(final_augmented_train_input_train[i,:,:], noiseIntensity)
         return noise_tensor, final_augmented_train_input_validation, final_augmented_train_input_train_target, final_augmented_train_input_validation_target
     
-    return final_augmented_train_input_train, final_augmented_train_input_validation, final_augmented_train_input_train_target, final_augmented_train_input_validation_target
+    return final_augmented_train_input_train, final_augmented_train_input_validation, final_augmented_train_input_train_target, final_augmented_train_input_validation_target, tmp_idx
 
-def preprocessing_test_100(test_input, denoize = False):
+def preprocessing_test_100(test_input, tmp_idx, denoize = False, reduceChannels=False, cutEnd = False):
     #denoise and normalize data (without detrending and so)
     tmp = np.array(test_input)
+    
+    if reduceChannels: 
+        tmp = tmp[:,tmp_idx,:]
+        
+    if cutEnd: 
+        tmp = tmp[:, :, 0:40]
+    
     if denoize:
         tmp = denoisedSignals(tmp)
     return tmp
 
-def preprocessing_train_20(train_input, train_target, denoize=False, addGaussianNoise=False):
+def preprocessing_train_20(train_input, train_target, denoize=False, addGaussianNoise=False, reduceChannels=False, cutEnd = False):
+    random.seed(7)
     
-    #denoise and normalize data (without detrending and so)
     tmp = np.array(train_input)
     tmp_target = np.array(train_target)
+    
+    #reduces the number of channels to only those with low correlations (ie. the most different between "0" labeled and "1" labelled) 
+    if reduceChannels: 
+        tmp_idx = reduceChannels(train_input, train_target, channelsKept = 10)
+        tmp = tmp[:,tmp_idx,:]
+        
+    if cutEnd: 
+        tmp = tmp[:, :, 0:400]
     
     if denoize:
         tmp = denoisedSignals(tmp) #Deletes the high frequencies 
@@ -513,12 +536,21 @@ def preprocessing_train_20(train_input, train_target, denoize=False, addGaussian
             noise_tensor[i , :, :] = noise(augmented_train_input_train[i,:,:], noiseIntensity)
         return noise_tensor, final_augmented_train_input_validation
     
-    return final_augmented_train_input_train, final_augmented_train_input_validation, final_augmented_train_input_train_target, final_augmented_train_input_validation_target
+    return final_augmented_train_input_train, final_augmented_train_input_validation, final_augmented_train_input_train_target, final_augmented_train_input_validation_target, tmp_idx
 
-def preprocessing_test_20(test_input, test_target, denoize = False):
+#test_input is the 1000Hz version
+def preprocessing_test_20(test_input, denoize = False):
     #denoise and normalize data (without detrending and so)
     tmp = np.array(test_input)
-    tmp_target = np.array(test_target)
+    
+        #denoise and normalize data (without detrending and so)
+    tmp = np.array(test_input)
+    
+    if reduceChannels: 
+        tmp = tmp[:,tmp_idx,:]
+        
+    if cutEnd: 
+        tmp = tmp[:, :, 0:400]
     
     if denoize:
         tmp = denoisedSignals(tmp) #Deletes the high frequencies 
@@ -535,3 +567,70 @@ def preprocessing_test_20(test_input, test_target, denoize = False):
 
     
     return final_augmented_test, final_augmented_target
+
+def channelReduction(train_input, train_target, channelsKept = 10):
+    inputlen = np.array(train_input[0, :, 0]) 
+    time = np.linspace(0, 500, 50)
+
+    #fig, axes = plt.subplots(nrows=28, ncols=2, sharex=True, figsize=(100, 100))
+    #fig.subplots_adjust(hspace=0.5)
+
+    idx0 = [i for i,x in enumerate(train_target) if x == 0] 
+    idx1 = [i for i,x in enumerate(train_target) if x == 1]
+
+    if(len(idx0) < len(idx1)):
+        indexeslen = len(idx0)
+    else: 
+        indexeslen = len(idx1)
+
+    print(indexeslen)
+
+    #input_len = nbChannels = 28 
+    #indexes_len = number of data of label "0" or "1" 
+    correlationArray = np.zeros((inputlen.size, indexeslen))
+
+    for i in range(0, indexeslen): 
+        for k in range(0, inputlen.size):
+
+            # Actual Preprocessing set 
+            data0 = np.array(train_input)
+            data0 = data0[idx0[i], k, :]
+
+            fft=scipy.fft(data0) #signal denoising 
+            bp=fft[:]
+            for j in range(len(bp)): 
+                if j>=10: #if frequency is higher then 10 Hz 
+                    bp[j]=0
+            ibp=scipy.ifft(bp) 
+            ibp = signal.detrend(ibp) #signal detrending
+            ibp = (ibp-np.mean(ibp))/np.std(ibp) #signal normalization with initial offset suprresion 
+
+            #axes[k, 0].plot(time, ibp)
+            #axes[0, i].xlabel('time (ms)')
+            #axes[0, i].ylabel('Normalized Voltage (-)')
+            #plt.title('After Preprocessing - Simple plot of all electrodes')
+
+            data1 = train_input[idx1[i], k, :]
+            data1 = np.array(data1)
+
+            fft=scipy.fft(data1) #signal denoising 
+            bp=fft[:]
+            for j in range(len(bp)): 
+                if j>=10: #if frequency is higher then 10 Hz 
+                    bp[j]=0
+            ibp=scipy.ifft(bp) 
+
+            ibp = signal.detrend(ibp) #signal detrending
+
+            #ibp = (ibp-ibp[0])/max(max(ibp), abs(min(ibp))) #signal normalization with initial offset suprresion 
+            ibp = (ibp-np.mean(ibp))/np.std(ibp) #signal normalization with initial offset suprresion 
+
+            #axes[k, 1].plot(time, ibp)
+            correlationArray[k, i] = np.correlate(data0, data1)
+
+
+    mean_correlation = np.mean(correlationArray, axis=1)
+    sorted_idx = np.argsort(np.abs(mean_correlation))
+
+    print('The channels with the greatest difference between left and rigth are, ', sorted_idx[0:channelsKept])
+    return sorted_idx[0:10]
