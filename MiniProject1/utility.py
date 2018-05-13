@@ -397,9 +397,7 @@ def noise(X, intensity):
 def shift(X, shift): 
     return np.roll(X, shift)
 
-def denoisedSignals(inputData): 
-    #IMPORTANT !! needs to be computationnally optimized by using the operations shown in the exercises 
-    
+def denoisedSignals(inputData):     
     normalizedOutput = np.zeros(inputData.shape)
     numberSamples = (np.array(inputData[:, 0, 0])).size
     numberElectrodes = (np.array(inputData[0, :, 0])).size
@@ -415,16 +413,15 @@ def denoisedSignals(inputData):
                 if p>=10:
                     bp[p]=0
             ibp=scipy.ifft(bp)
-
-            #ibp = (ibp-ibp[0])/max(max(ibp), abs(min(ibp))) #signal normalization with initial offset suprresion 
             ibp = (ibp-np.mean(ibp))/np.std(ibp) #signal normalization with initial offset suprresion 
             
             normalizedOutput[i,j,:] = ibp.real
     return normalizedOutput
 
-def preprocessing_train_100(train_input, train_target, denoize=False, addGaussianNoise=False, reduceChannels=False, cutEnd = False):
+#the input has to be the one sampled at 1000Hz
+def preprocessing_train(train_input, train_target, subsampling_frequency='100Hz', window=False, denoize=False, addGaussianNoise=False, reduceChannels=False, cutEnd=False):
     random.seed(7)
-    #denoise and normalize data (without detrending and so)
+    
     tmp = np.array(train_input)
     tmp_target = np.array(train_target)
     tmp_idx=[]
@@ -433,37 +430,79 @@ def preprocessing_train_100(train_input, train_target, denoize=False, addGaussia
     if reduceChannels: 
         tmp_idx = channelReduction(train_input, train_target, channelsKept = 10)
         tmp = tmp[:,tmp_idx,:]
-        
+    #cuts the last 100 samples with are the ones containing the most noise    
     if cutEnd: 
         tmp = tmp[:, :, 0:400]
-    
+    #applies a filter on the signal in order to supress the noise
     if denoize:
         tmp = denoisedSignals(tmp) #Deletes the high frequencies 
-
-    augmented_train_input = tmp[:,:,0::10]
-    idxToDelete = random.sample(range(len(augmented_train_input[:,0,0])), 16) #takes 16 lines as a validation set
-    augmented_train_input_validation = tmp[idxToDelete,:,0::10]
-    augmented_train_input_validation_target = tmp_target[idxToDelete]
-    augmented_train_input_train = np.delete(augmented_train_input, idxToDelete, 0)
-    augmented_train_input_train_target = np.delete(train_target, idxToDelete, 0)
-    
-    final_augmented_train_input_train = augmented_train_input_train
-    final_augmented_train_input_validation = augmented_train_input_validation
-    final_augmented_train_input_train_target = augmented_train_input_train_target
-    final_augmented_train_input_validation_target = augmented_train_input_validation_target
-
-    for i in range(1, 10):
-        augmented_train_input = tmp[:,:,i::10]
-        #idxToDelete = random.sample(range(len(augmented_train_input[:,0,0])), 16) #takes 16 lines as a validation set
-        augmented_train_input_validation = tmp[idxToDelete,:,i::10]
+        
+    if subsampling_frequency=='100Hz':
+        sampling_idx = 10
+    elif subsampling_frequency=='125Hz':
+        sampling_idx = 8
+        tmp = tmp[:,:, 0:496] #we have to delete the last 4 samples to be able to divide by 8 the signal
+    elif subsampling_frequency=='20Hz':
+        sampling_idx = 50
+    else: 
+        print('The specified sampling frequencies does not exist, please select another one') 
+        
+    signal_length = len(tmp[0,0,:])
+       
+    if window==False: #meaning we are not taming windows but augmenting by taking one sample every n samples 
+        augmented_train_input = tmp[:,:,0::sampling_idx]
+        idxToDelete = random.sample(range(len(augmented_train_input[:,0,0])), 16) #takes 16 lines as a validation set
+        augmented_train_input_validation = tmp[idxToDelete,:,0::sampling_idx]
         augmented_train_input_validation_target = tmp_target[idxToDelete]
         augmented_train_input_train = np.delete(augmented_train_input, idxToDelete, 0)
-        augmented_train_input_target = np.delete(train_target, idxToDelete, 0)
+        augmented_train_input_train_target = np.delete(train_target, idxToDelete, 0)
+
+        final_augmented_train_input_train = augmented_train_input_train
+        final_augmented_train_input_validation = augmented_train_input_validation
+        final_augmented_train_input_train_target = augmented_train_input_train_target
+        final_augmented_train_input_validation_target = augmented_train_input_validation_target
+
+        for i in range(1, sampling_idx):
+            augmented_train_input = tmp[:,:,i::sampling_idx]
+            #idxToDelete = random.sample(range(len(augmented_train_input[:,0,0])), 16) #takes 16 lines as a validation set
+            augmented_train_input_validation = tmp[idxToDelete,:,i::sampling_idx]
+            augmented_train_input_validation_target = tmp_target[idxToDelete]
+            augmented_train_input_train = np.delete(augmented_train_input, idxToDelete, 0)
+            augmented_train_input_target = np.delete(train_target, idxToDelete, 0)
+
+            final_augmented_train_input_train = np.concatenate((final_augmented_train_input_train, augmented_train_input_train))
+            final_augmented_train_input_validation = np.concatenate((final_augmented_train_input_validation, augmented_train_input_validation))
+            final_augmented_train_input_train_target = np.concatenate((final_augmented_train_input_train_target, augmented_train_input_target))
+            final_augmented_train_input_validation_target = np.concatenate((final_augmented_train_input_validation_target, augmented_train_input_validation_target))
         
-        final_augmented_train_input_train = np.concatenate((final_augmented_train_input_train, augmented_train_input_train))
-        final_augmented_train_input_validation = np.concatenate((final_augmented_train_input_validation, augmented_train_input_validation))
-        final_augmented_train_input_train_target = np.concatenate((final_augmented_train_input_train_target, augmented_train_input_target))
-        final_augmented_train_input_validation_target = np.concatenate((final_augmented_train_input_validation_target, augmented_train_input_validation_target))
+    else: 
+        augmented_train_input = tmp[:,:,0:sampling_idx]
+        idxToDelete = random.sample(range(len(augmented_train_input[:,0,0])), 16) #takes 16 lines as a validation set
+        augmented_train_input_validation = tmp[idxToDelete,:,0:sampling_idx]
+        augmented_train_input_validation_target = tmp_target[idxToDelete]
+        augmented_train_input_train = np.delete(augmented_train_input, idxToDelete, 0)
+        augmented_train_input_train_target = np.delete(train_target, idxToDelete, 0)
+
+        final_augmented_train_input_train = augmented_train_input_train
+        final_augmented_train_input_validation = augmented_train_input_validation
+        final_augmented_train_input_train_target = augmented_train_input_train_target
+        final_augmented_train_input_validation_target = augmented_train_input_validation_target
+
+        final_augmented_test = tmp[:,:,0:sampling_idx]
+        final_augmented_target = tmp_target
+
+        for i in range(sampling_idx, signal_length-sampling_idx, sampling_idx):
+            augmented_train_input = tmp[:,:,i:i+sampling_idx]
+            #idxToDelete = random.sample(range(len(augmented_train_input[:,0,0])), 16) #takes 16 lines as a validation set
+            augmented_train_input_validation = tmp[idxToDelete,:,i:i+sampling_idx]
+            augmented_train_input_validation_target = tmp_target[idxToDelete]
+            augmented_train_input_train = np.delete(augmented_train_input, idxToDelete, 0)
+            augmented_train_input_target = np.delete(train_target, idxToDelete, 0)
+            
+            final_augmented_train_input_train = np.concatenate((final_augmented_train_input_train, augmented_train_input_train))
+            final_augmented_train_input_validation = np.concatenate((final_augmented_train_input_validation, augmented_train_input_validation))
+            final_augmented_train_input_train_target = np.concatenate((final_augmented_train_input_train_target, augmented_train_input_target))
+            final_augmented_train_input_validation_target = np.concatenate((final_augmented_train_input_validation_target, augmented_train_input_validation_target))
 
     if(addGaussianNoise):
         noise_tensor = np.zeros(final_augmented_train_input_train.shape)
@@ -474,102 +513,45 @@ def preprocessing_train_100(train_input, train_target, denoize=False, addGaussia
     
     return final_augmented_train_input_train, final_augmented_train_input_validation, final_augmented_train_input_train_target, final_augmented_train_input_validation_target, tmp_idx
 
-def preprocessing_test_100(test_input, tmp_idx, denoize = False, reduceChannels=False, cutEnd = False):
-    #denoise and normalize data (without detrending and so)
-    tmp = np.array(test_input)
-    
-    if reduceChannels: 
-        tmp = tmp[:,tmp_idx,:]
-        
-    if cutEnd: 
-        tmp = tmp[:, :, 0:40]
-    
-    if denoize:
-        tmp = denoisedSignals(tmp)
-    return tmp
-
-def preprocessing_train_20(train_input, train_target, denoize=False, addGaussianNoise=False, reduceChannels=False, cutEnd = False):
-    random.seed(7)
-    
-    tmp = np.array(train_input)
-    tmp_target = np.array(train_target)
-    
-    tmp_idx=[]
-    
-    #reduces the number of channels to only those with low correlations (ie. the most different between "0" labeled and "1" labelled) 
-    if reduceChannels: 
-        tmp_idx = reduceChannels(train_input, train_target, channelsKept = 10)
-        tmp = tmp[:,tmp_idx,:]
-        
-    if cutEnd: 
-        tmp = tmp[:, :, 0:400]
-    
-    if denoize:
-        tmp = denoisedSignals(tmp) #Deletes the high frequencies 
-
-    augmented_train_input = tmp[:,:,0::50]
-    idxToDelete = random.sample(range(len(augmented_train_input[:,0,0])), 16) #takes 16 lines as a validation set
-    augmented_train_input_validation = tmp[idxToDelete,:,0::50]
-    augmented_train_input_validation_target = tmp_target[idxToDelete]
-    augmented_train_input_train = np.delete(augmented_train_input, idxToDelete, 0)
-    augmented_train_input_train_target = np.delete(train_target, idxToDelete, 0)
-    
-    final_augmented_train_input_train = augmented_train_input_train
-    final_augmented_train_input_validation = augmented_train_input_validation
-    final_augmented_train_input_train_target = augmented_train_input_train_target
-    final_augmented_train_input_validation_target = augmented_train_input_validation_target
-
-    for i in range(1, 50):
-        augmented_train_input = tmp[:,:,i::50]
-        #idxToDelete = random.sample(range(len(augmented_train_input[:,0,0])), 16) #takes 16 lines as a validation set
-        augmented_train_input_validation = tmp[idxToDelete,:,i::50]
-        augmented_train_input_validation_target = tmp_target[idxToDelete]
-        augmented_train_input_train = np.delete(augmented_train_input, idxToDelete, 0)
-        augmented_train_input_target = np.delete(train_target, idxToDelete, 0)
-        
-        final_augmented_train_input_train = np.concatenate((final_augmented_train_input_train, augmented_train_input_train))
-        final_augmented_train_input_validation = np.concatenate((final_augmented_train_input_validation, augmented_train_input_validation))
-        final_augmented_train_input_train_target = np.concatenate((final_augmented_train_input_train_target, augmented_train_input_target))
-        final_augmented_train_input_validation_target = np.concatenate((final_augmented_train_input_validation_target, augmented_train_input_validation_target))
-
-    if(addGaussianNoise):
-        noise_tensor = np.zeros(train_input.shape)
-        for i in range (augmented_train_input_train.shape[0]):
-            noiseIntensity = 0.1*np.max(augmented_train_input_train[i,:,:])
-            noise_tensor[i , :, :] = noise(augmented_train_input_train[i,:,:], noiseIntensity)
-        return noise_tensor, final_augmented_train_input_validation
-    
-    return final_augmented_train_input_train, final_augmented_train_input_validation, final_augmented_train_input_train_target, final_augmented_train_input_validation_target, tmp_idx
-
 #test_input is the 1000Hz version
-def preprocessing_test_20(test_input, tmp_idx, denoize = False, reduceChannels=False, cutEnd=False):
+def preprocessing_test(test_input, tmp_idx, window=True, subsampling_frequency='100Hz', denoize = False, reduceChannels=False, cutEnd=False):
     #denoise and normalize data (without detrending and so)
-    tmp = np.array(test_input)
-    
-        #denoise and normalize data (without detrending and so)
-    tmp = np.array(test_input)
+    tmp = np.array(test_input)   
     
     if reduceChannels: 
-        tmp = tmp[:,tmp_idx,:]
-        
+        tmp = tmp[:,tmp_idx,:] 
     if cutEnd: 
-        tmp = tmp[:, :, 0:400]
-    
+        tmp = tmp[:, :, 0:400]   
     if denoize:
-        tmp = denoisedSignals(tmp) #Deletes the high frequencies 
-
-    final_augmented_test = tmp[:,:,0::50]
-    final_augmented_target = tmp_target.copy()
-    
-
-    for i in range(1, 50):
-        augmented_test_input = tmp[:,:,i::50]
+        tmp = denoisedSignals(tmp) #Deletes the high frequencies
+         
+    if subsampling_frequency=='100Hz':
+        sampling_idx = 10
+    elif subsampling_frequency=='125Hz':
+        sampling_idx = 8
+        tmp = tmp[0:496] #we have to delete the last 4 samples to be able to divide by 8 the signal
+    elif subsampling_frequency=='20Hz':
+        sampling_idx = 50
+    else:
+        print('The specified sampling frequencies does not exist, please select another one') 
         
-        final_augmented_test = np.concatenate((final_augmented_test, augmented_test_input))
-        final_augmented_target = np.concatenate((final_augmented_target, tmp_target))
+    signal_length=len(tmp[0,0,:])
 
+    if window==False: #meaning we are not taming windows but augmenting by taking one sample every n samples 
+        final_augmented_test = tmp[:,:,0::sampling_idx]
+
+        for i in range(1, sampling_idx):
+            augmented_test_input = tmp[:,:,i::sampling_idx]
+            final_augmented_test = np.concatenate((final_augmented_test, augmented_test_input))
+        return final_augmented_test
     
-    return final_augmented_test, final_augmented_target
+    else:
+        final_augmented_test = tmp[:,:,0:sampling_idx]
+
+        for i in range(sampling_idx, signal_length-sampling_idx, sampling_idx):
+            augmented_test_input = tmp[:,:,i:i+sampling_idx]
+            final_augmented_test = np.concatenate((final_augmented_test, augmented_test_input))
+        return final_augmented_test
 
 def channelReduction(train_input, train_target, channelsKept = 10):
     inputlen = np.array(train_input[0, :, 0]) 
