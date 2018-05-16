@@ -343,7 +343,44 @@ class conv2DNet_6(nn.Module):
     def __init__(self, output_units):
         super(conv2DNet_6, self).__init__()
         
-        self.fc_inputs = 64*3*6
+        self.fc_inputs = 128*1*42
+        self.conv1 = nn.Conv2d(1, 64, (1, 5), dilation=2)
+        self.batchnorm1 = nn.BatchNorm2d(64,False)
+        self.conv2 = nn.Conv2d(64,128,(28,1))
+        self.batchnorm2 = nn.BatchNorm2d(128, False) # Normalize
+        self.fc1 = nn.Linear(self.fc_inputs,64)   
+        self.fc2 = nn.Linear(64, output_units)
+        
+    def forward(self,x):
+        
+        #print("input shape : {}".format(x.shape))
+        x = self.conv1(x)
+        #print("Shape after self.conv1(x) : {}".format(x.shape))
+        x = self.batchnorm1(x)
+        #print("Shape after self.batchnorm1(x) : {}".format(x.shape))
+        x = self.conv2(x)
+        #print("Shape after self.conv2(x) : {}".format(x.shape))
+        x = self.batchnorm2(x)
+        #print("Shape after self.batchnorm2(x) : {}".format(x.shape))
+        
+        #print(x.shape)
+        
+        x = x.view(-1,self.fc_inputs)
+        #print("Flatten shape for FC : {}".format(x.shape))
+        x = F.relu(self.fc1(x))
+        x = F.dropout(x,0.6)
+        #print("after fc1 : {}".format(x.shape))      
+        x = F.sigmoid(self.fc2(x))
+        
+        if self.fc2.out_features == 1:
+            x = x.view(-1)       
+        return x
+    
+class conv2DNet_7(nn.Module):
+    def __init__(self, output_units):
+        super(conv2DNet_7, self).__init__()
+        
+        self.fc_inputs = 64*3*60
         self.conv1 = nn.Conv2d(1, 32, (1, 3), dilation=2, padding=1)
         self.batchnorm1 = nn.BatchNorm2d(32,False)
         self.conv2 = nn.Conv2d(32,64,(28,1))
