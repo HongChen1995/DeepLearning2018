@@ -426,7 +426,7 @@ class conv2DNet_9(nn.Module):
         self.fc_inputs = 4*1*42
         
         self.conv = torch.nn.Sequential()
-        self.conv.add_module("conv_1", torch.nn.Conv2d(1, 4, kernel_size=(1,5), dilation=2)
+        self.conv.add_module("conv_1", torch.nn.Conv2d(1, 4, kernel_size=(1,5), dilation=2))
         #self.conv.add_module("relu_1", torch.nn.ReLU())
         self.conv.add_module("BN_1", torch.nn.BatchNorm2d(4, False))                     
         self.conv.add_module("conv_2", torch.nn.Conv2d(4, 4, kernel_size=(28,1)))
