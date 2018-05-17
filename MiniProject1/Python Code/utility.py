@@ -623,3 +623,24 @@ def channelReduction(train_input, train_target, channelsKept = 10):
 
     print('The channels with the greatest difference between left and rigth are, ', sorted_idx[0:channelsKept])
     return sorted_idx[0:10]
+
+def compute_nb_errors(model, data_input, data_target, batch_size):
+    nb_errors = 0
+    Ndata = len(data_input[:, 0, 0, 0])
+    model.eval()
+    print('data_target', data_target.shape)
+    print('data_input', data_input.shape)
+    
+    for b_start in range(0, Ndata, batch_size):
+        bsize_eff = batch_size - max(0, b_start+batch_size-Ndata)  # boundary case
+        batch_output = model.forward(data_input.narrow(0, b_start, bsize_eff))  # is Variable if data_input is Variable
+        if len(list(batch_output.size()))>1 and batch_output.size(1) > 1:
+            # as many ouputs as there are classes => select maximum output
+            nb_err_batch = (batch_output.max(1)[1] != data_target.narrow(0, b_start, bsize_eff)).long().sum()
+            # overflow problem if conversion to Long Int not performed, treated as short 1-byte int otherwise!!
+        else:
+            # output is a scalar in [0, 1]
+            nb_err_batch = batch_output.round().sub(data_target.narrow(0, b_start, bsize_eff)).sign().abs().sum()
+        
+        nb_errors += nb_err_batch
+    return nb_errors
