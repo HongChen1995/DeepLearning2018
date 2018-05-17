@@ -228,7 +228,7 @@ class conv2DNet_4(nn.Module):
     def __init__(self, output_units):
         super(conv2DNet_4, self).__init__()
         
-        self.fc_inputs = 4*1*54
+        self.fc_inputs = 4*1*42
         self.conv1 = nn.Conv2d(1, 4, (1, 5), dilation=2)
         self.batchnorm1 = nn.BatchNorm2d(4,False)
         self.conv2 = nn.Conv2d(4,4,(28,1))
