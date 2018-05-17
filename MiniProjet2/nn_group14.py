@@ -1,43 +1,40 @@
 # -*- coding: utf-8 -*-
 
 import math
-from torch import FloatTensor, LongTensor, manual_seed
-from numpy import arange
-
-# %% Toy example - data generation
-def generate_disc_set(nb, one_hot=False):
-    data = FloatTensor(nb, 2).uniform_(0, 1)# uniform distribution in [0,1] x [0,1]
-    target = data.pow(2).sum(1).sub(1 / (2*math.pi)).sign().sub(1).div(-2).long() # 1 if inside disk of radius sqrt(2/pi), 0 if outside
-    if one_hot:
-        # Useful for MSE loss: convert from scalar labels to vector labels
-        target_one_hot = LongTensor(nb, 2).fill_(-1)
-        # Stupid Tensor does not seem to have an efficient way to do this; use ugly loop
-        for k in range(target.size(0)):
-            target_one_hot[k, target[k]] = 1
-        target = target_one_hot
-    return data, target
+from torch import FloatTensor, LongTensor, arange
 
 
-def generate_data_standardized(nb, one_hot=False):
-    ########## Generation of the data ##########
-    train_input, train_target = generate_disc_set(nb, one_hot)
-    test_input, test_target = generate_disc_set(nb, one_hot)
+# %% Parameter class
+class Parameter(object):
+    """Object representing a model parameter along with its gradient.
 
-    ########## Calculation of mean and std of training set ##########
-    mean, std = train_input.mean(), train_input.std()
+    Args:
+        pytorch_tensor (Tensor): Float or LongTensor that the parameter should
+            be initialized to.
 
-    ########## Standardization ##########
-    train_input.sub_(mean).div_(std)
-    test_input.sub_(mean).div_(std)
+    Attributes:
+        data (Tensor): tensor containing the parameter value.
+        grad (Tensor): tensor of the same shape as data containing the current
+            gradient.
+    """
 
-    return train_input, train_target, test_input, test_target
+    def __init__(self, pytorch_tensor):
+        self.data = pytorch_tensor.clone()  # tensors passed by reference
+        self.grad = pytorch_tensor.clone().fill_(0)  # maintains Float or Long
+
+    def zero_grad(self):
+        """Set gradient to zero.
+        """
+        self.grad.fill_(0)
 
 
 # %% Module class and child classes
 
-
 class Module (object):
-
+    """ Base class for Modules.
+    Modules are intended as the elementary building blocks making up complex
+    neural networks.
+    """
     def forward(self, * input):
         raise NotImplementedError
 
@@ -51,17 +48,22 @@ class Module (object):
         pass
 
 
-class Parameter(object):
-
-    def __init__(self, pytorch_tensor):
-        self.data = pytorch_tensor.clone()  # tensors passed by reference
-        self.grad = pytorch_tensor.clone().fill_(0)  # maintains Float or Long
-
-    def zero_grad(self):
-        self.grad.fill_(0)
-
-
 class Linear(Module):
+    """Fully-connected linear layer.
+
+    Args:
+        input_units (int): number of input units to the layer.
+        output_units (int): number of output units to the layer.
+        bias (bool): indicate whether a bias should be added to each output.
+            Default: True.
+        nonlinearity (str): non-linear activation layer which the output is fed
+            to. This will affect weight initialization. Default: sigmoid (for
+            a initialization gain of 1).
+
+    Attributes:
+        input_units (int): number of input units to the layer.
+        output_units (int): number of output units to the layer.
+    """
 
     def __init__(self, input_units, output_units, bias=True, nonlinearity=None):
         super(Linear, self).__init__()
@@ -78,9 +80,18 @@ class Linear(Module):
         if nonlinearity is None:
             nonlinearity = 'sigmoid'
 
-        self.initialize_parameters(nonlinearity)
+        self._initialize_parameters(nonlinearity)
 
-    def initialize_parameters(self, nonlinearity):
+    def _initialize_parameters(self, nonlinearity):
+        """Initialize weights and biases of fully-connected layer so that the
+            variance of the activations is controlled.
+        Args:
+            nonlinearity (str): 'sigmoid', 'tanh', 'relu' or None. Scales the
+                variance of the parameters to account for the effect of the
+                non-linear activation. This makes most sense if the same non-
+                linear activation is used throughout the network.
+
+        """
         # Variance correction associated with nonlinear activation of network
         nonlinearity = nonlinearity.lower()
         if nonlinearity == 'sigmoid':
@@ -93,7 +104,7 @@ class Linear(Module):
             raise ValueError("Unsupported nonlinearity {}".format(nonlinearity))
 
         # Control variance of activations (not of gradients)
-        uniform_corr = math.sqrt(3)
+        uniform_corr = math.sqrt(3)  # account for uniform distribution
         stdv = uniform_corr * self.init_gain / math.sqrt(self.input_units)
         self.weights.data.uniform_(-stdv, stdv)
         if self.bias is not None:
@@ -169,7 +180,8 @@ class Linear(Module):
 
 
 class ReLU(Module):
-
+    """Rectified linear unit activation layer.
+    """
     def __init__(self):
         super(ReLU, self).__init__()
         self.input = None  # last input used for forward pass
@@ -192,6 +204,8 @@ class ReLU(Module):
 
 
 class Tanh(Module):
+    """Hyperbolic tangent activation layer.
+    """
 
     def __init__(self):
         super(Tanh, self).__init__()
@@ -210,7 +224,8 @@ class Tanh(Module):
 
 
 class Sigmoid(Module):
-
+    """Sigmoid activation layer.
+    """
     def __init__(self):
         super(Sigmoid, self).__init__()
         self.input = None
@@ -258,9 +273,8 @@ class Sequential(Module):
             m.zero_grad()
 
 
-# %% Non-linear layers
 class LogSoftMax(Module):
-    """ Applies logarithm and softmax component-wise.
+    """ Layer that applies logarithm and softmax component-wise.
     """
     def __init__(self):
         super(LogSoftMax, self).__init__()
@@ -276,10 +290,9 @@ class LogSoftMax(Module):
     def backward(self, dl_dout):
         # shift by max for numerical stability
         x_norm = self.input - self.input.max(1, keepdim=True)[0]
-        e_x = x_norm.exp()
-        softmax_x = e_x / e_x.sum(dim=1, keepdim=True)
-        return (-softmax_x * dl_dout).sum(dim=1, keepdim=True) + dl_dout
-
+        e_x = x_norm.exp()  # b_size x dim
+        softmax_x = e_x / e_x.sum(dim=1, keepdim=True)  # div uses broadcasting to keep b_size x dim
+        return (-softmax_x * dl_dout.sum(dim=1, keepdim=True)) + dl_dout  # mul uses braodcasting
 
 # %% Loss functions
 class Loss(object):
@@ -305,15 +318,16 @@ class MSELoss(Loss):
         Args:
             output (FloatTensor): model output, of size Nb x d1 x d2 x ...
                 where Nb is the batch size.
-            target (FloatTensor): must have the same size as output.
+            target (Tensor): must have the same size as output. Converted to
+                FloatTensor automatically.
 
         Returns:
             float: a scalar floating-point value.
         """
-        return (output-target).pow(2).sum()/output.size(0)  # sum over all samples and entries
+        return (output-target.float()).pow(2).sum()/output.size(0)  # sum over all samples and entries
 
     def backward(self, output, target):
-        return 2 * (output-target)/ output.size(0)
+        return 2 * (output-target.float())/ output.size(0)
 
 
 class NLLLoss(Loss):
@@ -329,25 +343,46 @@ class NLLLoss(Loss):
         Nb = output.size(0)
         out_dim = output.size(1)
         # sum the "on-target" activations across the batch:
-        return - output.view(-1)[arange(0, Nb)*out_dim + target.long()].sum()/Nb
+        return - output.view(-1)[arange(0, Nb).long()*out_dim + target.long()].sum()/Nb
 
     def backward(self, output, target):
         dl_din = FloatTensor(output.size()).fill_(0)
         # Get dimension
         ndim = len(list(output.size()))
         assert ndim == 2, "output argument must have size Nb x d"
+
         Nb = output.size(0)
         for i in range(Nb):
             dl_din[i, target[i]] = -1/Nb
         return dl_din
 
+class CrossEntropyLoss(Loss):
+    """ Cross entropy loss.
+
+        Equivalent to using NLLLoss and adding a final LogSoftMax layer to
+        the network.
+
+        Attributes:
+            nll (NLLLoss): NLL loss is used internally, coupled with self.lsm
+            lsm (LogSoftMax): internal LogSoftMax Module to simulate adding an
+                extra LogSoftMax layer to the network being trained.
+    """
+    def __init__(self):
+        super(CrossEntropyLoss, self).__init__()
+        self.nll = NLLLoss()
+        self.lsm = LogSoftMax()
+
+    def loss(self, output, target):
+        return self.nll.loss(self.lsm.forward(output), target)
+
+    def backward(self, output, target):
+        # input -> LSM -> s -> NLL -> output
+        dl_ds = self.nll.backward(output, target)
+        return self.lsm.backward(dl_ds)
+
 # %% Optimizer class
 class Optimizer(object):
     """ Base class for optimizers.
-
-    Args:
-        params (iterable of type Parameter): iterable yielding the parameters
-            of the model to optimize.
     """
     def __init__(self, params):
         self.params = params
@@ -361,10 +396,19 @@ class SGD(Optimizer):
 
     Args:
         params (iterable of type Parameter): iterable yielding the parameters
-            of the model to optimize.
+            (Parameter objects) of the model to optimize, typically a list.
         lr (float): strictly positive learning rate or gradient step length
-        momentum (float): non-negative weight of the inertia term
+        momentum (float): non-negative weight of the momentum or inertia term
+            (Rumelhart et al., Nature 1986). If set to 0, vanilla SGD is
+            performed. Default: 0.
 
+    Attributes:
+        params (iterable of type Parameter): iterable yielding the parameters
+            of the model to optimize, typically a list of Parameter objects.
+        lr (float): learning rate or gradient step length.
+        momentum (float): momentum or inertia term.
+        step_buf (dict): contains the previous increment for each parameter if
+            momentum is non-zero.
 
     """
 
@@ -377,99 +421,20 @@ class SGD(Optimizer):
         if self.momentum > 0:
             self.step_buf = {}
             for p in self.params:
-                #self.step_buf.append(FloatTensor(p.grad.size()).zero_())
                 self.step_buf[p] = FloatTensor(p.grad.size()).zero_()
 
     def step(self):
+        """Updates the parameters of model using either vanilla SGD (if
+        momentum is zero) or SGD with inertia. Parameter steps are used for the
+        next iteration if an inertia term is present.
+        """
         for p in self.params:
-            grad_step = self.lr * p.grad
+            param_step = self.lr * p.grad
             if self.momentum > 0:
-                grad_step.add_(self.momentum * self.step_buf[p])
-                self.step_buf[p] = grad_step.clone()
-            p.data.add_(-grad_step)
-
-# %% Train and test modules
-
-def compute_nb_errors(model, data_input, data_target, one_hot=False, batch_size=100):
-    Ndata = data_input.size(0)
-    if one_hot:
-        data_label = data_target.max(dim=1)[1]
-    nb_errors = 0
-    for b_start in range(0, data_input.size(0), batch_size):
-        # account for boundary effects
-        bsize_eff = batch_size - max(0, b_start + batch_size - Ndata)
-        # batch output has size Nbatch x 2 if one_hot=True, Nbatch otherwise
-        batch_output = model.forward(data_input.narrow(0, b_start, bsize_eff))
-        if one_hot:
-            pred_label = batch_output.max(dim=1)[1]  # size: Nbatch
-            nb_err_batch = 0
-            for k in range(bsize_eff):
-                if data_label[b_start+k] != pred_label[k]:
-                    nb_err_batch = nb_err_batch + 1
-        else:
-            nb_err_batch = (batch_output.max(1)[1] != data_target.narrow(0, b_start, bsize_eff)).long().sum()
-        # SERIOUS overflow problem if conversion to Long Int not performed because treated as 1-byte short int otherwise!!
-        nb_errors += nb_err_batch
-    return nb_errors
-
-# %% RUN
-
-# Make runs reproducible
-myseed = 141414
-manual_seed(myseed)
-
-Ndata = 1000
-Ntest = Ndata
-
-# Select one_hot for MSE optimization for instance
-one_hot = True
-
-train_input, train_target, test_input, test_target = generate_data_standardized(Ndata, one_hot)
-
-# Avoid saturation
-if one_hot:
-    train_target = 0.9 * train_target.float()
-    test_target = 0.9 * test_target.float()
-
-# Create model
-fc1 = Linear(2, 25)  #nonlinearity='relu'
-fc2 = Linear(25, 25)
-fc3 = Linear(25, 25)
-fc_out = Linear(25, 2)
+                param_step.add_(self.momentum * self.step_buf[p])
+                self.step_buf[p] = param_step.clone()
+            p.data.add_(-param_step)
 
 
-model = Sequential([fc1, ReLU(),
-                    fc2, ReLU(),
-                    fc3, ReLU(),
-                    fc_out])  # , LogSoftMax()
 
-# Train model
-criterion = MSELoss()
-if isinstance(criterion, MSELoss):
-    assert one_hot is True, "Use one_hot targets with MSELoss"
 
-Nepochs = 50
-b_size = 100
-lr = 0.01
-
-optimizer = SGD(model.param(), lr, momentum=0)
-for i_ep in range(Nepochs):
-    model.zero_grad()
-    ep_loss = 0.0
-    for b_start in range(0, Ndata, b_size):
-        # account for boundary effects
-        bsize_eff = b_size - max(0, b_start + b_size - Ndata)
-
-        output = model.forward(train_input.narrow(0, b_start, bsize_eff))
-        batch_loss = criterion.loss(output, train_target.narrow(0, b_start, bsize_eff))
-        ep_loss += batch_loss
-        # derivative of loss with respect to final output
-        dl_dout = criterion.backward(output, train_target.narrow(0, b_start, bsize_eff))
-        # backward pass
-        dl_dx = model.backward(dl_dout)
-        optimizer.step()
-    print("epoch {}: loss {}".format(i_ep+1, batch_loss))
-
-nb_train_err = compute_nb_errors(model, train_input, train_target, one_hot)
-nb_test_err = compute_nb_errors(model, test_input, test_target, one_hot)
-print("Train error rate {}%, test error rate {}%".format(100*nb_train_err/Ndata, 100*nb_test_err/Ntest))
