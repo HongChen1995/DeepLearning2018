@@ -228,6 +228,8 @@ class conv2DNet_4(nn.Module):
     def __init__(self, output_units):
         super(conv2DNet_4, self).__init__()
         
+        #4*1*54 for 125 HZ 
+        #4*1*42 for 100 Hz signal 
         self.fc_inputs = 4*1*42
         self.conv1 = nn.Conv2d(1, 4, (1, 5), dilation=2)
         self.batchnorm1 = nn.BatchNorm2d(4,False)
@@ -266,7 +268,10 @@ class conv2DNet_5(nn.Module):
     def __init__(self, output_units):
         super(conv2DNet_5, self).__init__()
         
-        self.fc_inputs = 64*1*54
+        #4*1*54 for 125 HZ 
+        #4*1*42 for 100 Hz signal
+        
+        self.fc_inputs = 64*1*42
         self.conv1 = nn.Conv2d(1, 32, (1, 5), dilation=2)
         self.batchnorm1 = nn.BatchNorm2d(32,False)
         self.conv2 = nn.Conv2d(32,64,(28,1))
@@ -372,3 +377,72 @@ class conv2DNet_7(nn.Module):
         if self.fc2.out_features == 1:
             x = x.view(-1)       
         return x
+     
+#only one non linear activation model         
+class conv2DNet_8(nn.Module):
+    def __init__(self, output_units):
+        super(conv2DNet_8, self).__init__()
+        
+        #4*1*54 for 125 HZ 
+        #4*1*42 for 100 Hz signal 
+        
+        self.conv = torch.nn.Sequential()
+        self.conv.add_module("conv_1", torch.nn.Conv2d(1, 10, kernel_size=5))
+        self.conv.add_module("maxpool_1", torch.nn.MaxPool2d(kernel_size=2))
+        self.conv.add_module("relu_1", torch.nn.ReLU())
+        self.conv.add_module("conv_2", torch.nn.Conv2d(10, 20, kernel_size=5))
+        self.conv.add_module("dropout_2", torch.nn.Dropout())
+        self.conv.add_module("maxpool_2", torch.nn.MaxPool2d(kernel_size=2))
+        self.conv.add_module("relu_2", torch.nn.ReLU())
+
+        self.fc = torch.nn.Sequential()
+        self.fc.add_module("fc1", torch.nn.Linear(320, 50))
+        self.fc.add_module("relu_3", torch.nn.ReLU())
+        self.fc.add_module("dropout_3", torch.nn.Dropout())
+        self.fc.add_module("fc2", torch.nn.Linear(50, output_dim))
+        
+        self.fc_inputs = 4*1*42
+        self.conv1 = nn.Conv2d(1, 4, (1, 5), dilation=2)
+        self.batchnorm1 = nn.BatchNorm2d(4,False)
+        self.conv2 = nn.Conv2d(4,4,(28,1))
+        self.batchnorm2 = nn.BatchNorm2d(4, False) # Normalize
+        self.fc1 = nn.Linear(self.fc_inputs,4)   
+        self.fc2 = nn.Linear(4, output_units)
+        
+    def forward(self,x):
+        
+        x = self.conv.forward(x)
+        x = x.view(-1, 320)
+        return self.fc.forward(x)
+            
+    #only one non linear activation model         
+class conv2DNet_9(nn.Module):
+    def __init__(self, output_units):
+        super(conv2DNet_9, self).__init__()
+        
+        #4*1*54 for 125 HZ 
+        #4*1*42 for 100 Hz signal 
+        
+        self.fc_inputs = 4*1*42
+        
+        self.conv = torch.nn.Sequential()
+        self.conv.add_module("conv_1", torch.nn.Conv2d(1, 4, kernel_size=(1,5), dilation=2)
+        #self.conv.add_module("relu_1", torch.nn.ReLU())
+        self.conv.add_module("BN_1", torch.nn.BatchNorm2d(4, False))                     
+        self.conv.add_module("conv_2", torch.nn.Conv2d(4, 4, kernel_size=(28,1)))
+        self.conv.add_module("BN_2", torch.nn.BatchNorm2d(4, False))
+        #self.conv.add_module("dropout_2", torch.nn.Dropout())
+
+        self.fc = torch.nn.Sequential()
+        self.fc.add_module("fc1", torch.nn.Linear(self.fc_inputs, 4))
+        self.fc.add_module("relu_3", torch.nn.ReLU())
+        self.fc.add_module("dropout_3", torch.nn.Dropout())
+        self.fc.add_module("fc2", torch.nn.Linear(4, output_dim)) #add batch_norms
+        self.fc.add_module("sig_1", torch.nn.Sigmoid()) 
+        
+        
+    def forward(self,x):
+        
+        x = self.conv.forward(x)
+        x = x.view(-1, self.fc_inputs)
+        return self.fc.forward(x)
