@@ -81,8 +81,8 @@ test_input = Variable(preprocessed_input_test.contiguous().view(Ntest, 1, Nchann
 ################################### NETWORK TRAINING AND TESTING ###############################
 ################################################################################################
 # Train network 
-criterion = nn.BCELoss()
-#criterion = nn.CrossEntropyLoss()
+#criterion = nn.BCELoss()
+criterion = nn.CrossEntropyLoss()
 #criterion = nn.PoissonNLLLoss()
 #criterion = nn.BCEWithLogitsLoss()
 #criterion = nn.SmoothL1Loss() #interesting ... but does not converge
@@ -125,14 +125,14 @@ for i_rep in range(Nrep):
     #model = conv2DNet_1(Noutputs) #from classic knowledge of image segmentation  
     #model = conv2DNet_2(Nchannels, Nsamples_100, Noutputs) #from litterature 
     #model = conv2DNet_3(Noutputs) #from Paper
-    model = conv2DNet_4(Noutputs)  #from Temporal - Spatial; 4 Filters Model
-    #model = conv2DNet_5(Noutputs) #from Temporal - Spatial; 64 Filters Model
+    #model = conv2DNet_4(Noutputs)  #from Temporal - Spatial; 4 Filters Model
+    model = conv2DNet_5(Noutputs) #from Temporal - Spatial; 64 Filters Model
     #model = conv2DNet_6(Noutputs) #from Temporal - Spatial; 128 Filters Model
     
     #optimizer = optim.SGD(model.parameters(), lr=1e-3, momentum=0.50)
-    optimizer = optim.Adam(model.parameters())
+    #optimizer = optim.Adam(model.parameters())
     #optimizer = optim.Adagrad(model.parameters())
-    #optimizer = optim.Adamax(model.parameters())
+    optimizer = optim.Adamax(model.parameters())
     #optimizer = optim.ASGD(model.parameters())
     #optimizer = optim.RMSprop(model.parameters())
     #optimizer = optim.Rprop(model.parameters())
