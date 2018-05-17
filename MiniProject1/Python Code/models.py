@@ -266,7 +266,7 @@ class conv2DNet_5(nn.Module):
     def __init__(self, output_units):
         super(conv2DNet_5, self).__init__()
         
-        self.fc_inputs = 64*1*54
+        self.fc_inputs = 64*1*62
         self.conv1 = nn.Conv2d(1, 32, (1, 5), dilation=2)
         self.batchnorm1 = nn.BatchNorm2d(32,False)
         self.conv2 = nn.Conv2d(32,64,(28,1))
