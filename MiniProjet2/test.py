@@ -73,3 +73,4 @@ print("Time to initialize, train and test: {:4.3g}+-{:4.3g} [s]."
       "".format(time_elapsed.mean(), time_elapsed.std()))
 print("Train error rate: {:4.3g}+-{:3.2g}%.".format(train_err.mean(), train_err.std()))
 print("Test error rate: {:4.3g}+-{:3.2g}%.".format(test_err.mean(), test_err.std()))
+

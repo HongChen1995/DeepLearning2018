@@ -452,6 +452,7 @@ class SGD(Optimizer):
 
 
 # %% Train and test functions
+
 def compute_nb_errors(model, data_input, data_target, one_hot=False, batch_size=100):
     """Compute number of classification errors of a given model.
 
