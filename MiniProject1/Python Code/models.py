@@ -269,7 +269,8 @@ class conv2DNet_5(nn.Module):
         super(conv2DNet_5, self).__init__()
         
         #4*1*54 for 125 HZ 
-        #4*1*42 for 100 Hz signal 
+        #4*1*42 for 100 Hz signal
+        
         self.fc_inputs = 64*1*42
         self.conv1 = nn.Conv2d(1, 32, (1, 5), dilation=2)
         self.batchnorm1 = nn.BatchNorm2d(32,False)
