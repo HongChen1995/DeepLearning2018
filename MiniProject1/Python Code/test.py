@@ -6,9 +6,7 @@ from torch.autograd import Variable
 import torch.nn.functional as F
 import numpy as np
 import dlc_bci
-
-#import math
-
+import math
 from utility import *
 from models import *
 
