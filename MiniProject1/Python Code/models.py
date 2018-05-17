@@ -286,7 +286,7 @@ class conv2DNet_5(nn.Module):
         x = self.batchnorm2(x)
         #print("Shape after self.batchnorm2(x) : {}".format(x.shape))
         
-        #print(x.shape)
+        print(x.shape)
         
         x = x.view(-1,self.fc_inputs)
         #print("Flatten shape for FC : {}".format(x.shape))
