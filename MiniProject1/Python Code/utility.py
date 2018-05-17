@@ -643,6 +643,4 @@ def compute_nb_errors(model, data_input, data_target, batch_size):
             nb_err_batch = batch_output.round().sub(data_target.narrow(0, b_start, bsize_eff)).sign().abs().sum()
         
         nb_errors += nb_err_batch
-    if isinstance(nb_errors, Variable):
-        nb_errors = nb_errors.data[0]
     return nb_errors
