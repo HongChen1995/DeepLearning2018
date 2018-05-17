@@ -202,6 +202,10 @@ class ReLU(Module):
         dout_dx[x < 0] = 0
         return dout_dx
 
+    @staticmethod
+    def nonlin_str():
+        return "relu"
+
 
 class Tanh(Module):
     """Hyperbolic tangent activation layer.
@@ -222,6 +226,10 @@ class Tanh(Module):
     def _grad(self, x):
         return 1-x.tanh().pow(2)
 
+    @staticmethod
+    def nonlin_str():
+        return "tanh"
+
 
 class Sigmoid(Module):
     """Sigmoid activation layer.
@@ -240,6 +248,10 @@ class Sigmoid(Module):
 
     def _grad(self, x):
         return (x.exp() + x.mul(-1).exp() + 2).pow(-1)
+
+    @staticmethod
+    def nonlin_str():
+        return "sigmoid"
 
 
 class Sequential(Module):
@@ -294,6 +306,7 @@ class LogSoftMax(Module):
         softmax_x = e_x / e_x.sum(dim=1, keepdim=True)  # div uses broadcasting to keep b_size x dim
         return (-softmax_x * dl_dout.sum(dim=1, keepdim=True)) + dl_dout  # mul uses braodcasting
 
+
 # %% Loss functions
 class Loss(object):
     """ Base class for Loss functions.
@@ -327,7 +340,7 @@ class MSELoss(Loss):
         return (output-target.float()).pow(2).sum()/output.size(0)  # sum over all samples and entries
 
     def backward(self, output, target):
-        return 2 * (output-target.float())/ output.size(0)
+        return 2 * (output-target.float()) / output.size(0)
 
 
 class NLLLoss(Loss):
@@ -356,6 +369,7 @@ class NLLLoss(Loss):
             dl_din[i, target[i]] = -1/Nb
         return dl_din
 
+
 class CrossEntropyLoss(Loss):
     """ Cross entropy loss.
 
@@ -379,6 +393,7 @@ class CrossEntropyLoss(Loss):
         # input -> LSM -> s -> NLL -> output
         dl_ds = self.nll.backward(output, target)
         return self.lsm.backward(dl_ds)
+
 
 # %% Optimizer class
 class Optimizer(object):
@@ -436,5 +451,94 @@ class SGD(Optimizer):
             p.data.add_(-param_step)
 
 
+# %% Train and test functions
+def compute_nb_errors(model, data_input, data_target, one_hot=False, batch_size=100):
+    """Compute number of classification errors of a given model.
+
+    Args:
+        model (Module): Module trained for classification
+        data_input (FloatTensor): must have 2D size Nb x Nin, where Nb
+            is the batch size and Nin the number of input units of model.
+        data_target (FloatTensor): must have 2D size Nb x Nout, where Nout
+            is the number of output units of the model, which should match the
+            number of classes. One-hot encoding must be used, i.e.
+            data_target[i,j]=1 if data sample i belongs to class j, and
+            data_target[i,j]=-1 otherwise.
+        one_hot (bool): specify if one-hot encoding was used for the target.
+            Default: False.
+        batch_size (int): batch size which should be used for an efficient
+            forward pass. Does not necessarily need to be a divider of the
+            number of data samples, althgough this is often desirable for
+            statistical reasons. Note that this parameter does not influence
+            model training at all. Default: 100.
+    """
+    Ndata = data_input.size(0)
+    if one_hot:
+        data_label = data_target.max(dim=1)[1]
+    nb_errors = 0
+    for b_start in range(0, data_input.size(0), batch_size):
+        # account for boundary effects:
+        bsize_eff = batch_size - max(0, b_start + batch_size - Ndata)
+        # batch output has size Nbatch x 2 if one_hot=True, Nbatch otherwise:
+        batch_output = model.forward(data_input.narrow(0, b_start, bsize_eff))
+        if one_hot:
+            pred_label = batch_output.max(dim=1)[1]  # has size Nbatch
+            nb_err_batch = 0
+            for k in range(bsize_eff):
+                if data_label[b_start+k] != pred_label[k]:
+                    nb_err_batch = nb_err_batch + 1
+        else:
+            nb_err_batch = (batch_output.max(1)[1] !=
+                            data_target.narrow(0, b_start, bsize_eff)).long().sum()
+        # conversion to Long solves serious overflow problem; otherwise the above results are treated as 1-byte short ints
+        nb_errors += nb_err_batch
+    return nb_errors
 
 
+def train_model(model, train_input, train_target, criterion, optimizer, n_epochs=50, batch_size=100, log_loss=False, one_hot=None):
+    """Train model.
+
+    Args:
+        model (Module)
+        train_input (FloatTensor)
+        train_target (Tensor): converted to float if needed
+        criterion (Loss): loss function
+        optimizer (Optimizer): optimizer
+        n_epochs (int)
+        batch_size (int)
+        log_loss (bool): set to True to print training progress a few times.
+        one_hot (bool): if specified, used to print the train error.
+            Default:None
+
+    """
+    Nprint_stdout = 5  # number of times loss is printed to standard output
+    Ntrain = train_input.size(0)
+    for i_ep in range(n_epochs):
+        ep_loss = 0.0
+        for b_start in range(0, Ntrain, batch_size):
+            model.zero_grad()
+
+            # account for boundary effects
+            bsize_eff = batch_size - max(0, b_start + batch_size - Ntrain)
+
+            # forward pass
+            output = model.forward(train_input.narrow(0, b_start, bsize_eff))
+            batch_loss = criterion.loss(output, train_target.narrow(0, b_start, bsize_eff))
+            ep_loss += batch_loss
+
+            # backward pass
+            dl_dout = criterion.backward(output, train_target.narrow(0, b_start, bsize_eff))
+            dl_dx = model.backward(dl_dout)
+
+            # parameter update
+            optimizer.step()
+
+        # print progress
+        err_str = ""  # training error rate to be displayed
+        if one_hot is not None:
+            ep_err = compute_nb_errors(model, train_input, train_target, one_hot)
+            err_str = "(error rate {:3.2g} %)".format(100*ep_err/Ntrain)
+
+        if log_loss and i_ep % round(n_epochs/Nprint_stdout) == 0:
+            print("epoch {:d}/{:d}: training loss {:4.3g} {:s}"
+                  "".format(i_ep+1, n_epochs, ep_loss, err_str))
