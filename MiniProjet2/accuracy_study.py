@@ -18,7 +18,7 @@ myseed = 141414
 manual_seed(myseed)
 
 # Select one_hot for MSE optimization for instance
-one_hot = True
+one_hot = False
 
 # Generate train and test standardized data
 Ntrain = 1000
@@ -27,23 +27,26 @@ train_input, train_target, test_input, test_target = toy_model.generate_data_sta
 
 # Time model creation, training and testing
 Nreps = 15
-batch_sizes =  [100] # [1, 2, 3, 4, 5, 10, 15, 25, 50, 100, 150, 200, 250, 300, 350, 400, 500, 750, 1000]
-time_elapsed_gr14 = FloatTensor(len(batch_sizes), Nreps).zero_()
-train_err_gr14 = FloatTensor(len(batch_sizes), Nreps).zero_()
-test_err_gr14 = FloatTensor(len(batch_sizes), Nreps).zero_()
-
-time_elapsed_pt = FloatTensor(len(batch_sizes), Nreps).zero_()
-train_err_pt = FloatTensor(len(batch_sizes), Nreps).zero_()
-test_err_pt = FloatTensor(len(batch_sizes), Nreps).zero_()
 
 # Meta parameters
-Nepochs = 50
-eta = 1e-2
+b_size = 100
+Nepochs = 100
+eta = 0.005
 momentum = 0
 log_loss = False
 
-for i_b in range(len(batch_sizes)):
-    b_size = batch_sizes[i_b]
+meta_par_vals = [25, 50, 75, 100, 125, 150, 200, 250, 300] # eta [1e-5, 1e-4, 1e-3, 1e-2, 1e-1, 1] #Nepochs[20, 40, 60, 80, 100, 120, 150, 200, 250]
+
+time_elapsed_gr14 = FloatTensor(len(meta_par_vals), Nreps).zero_()
+train_err_gr14 = FloatTensor(len(meta_par_vals), Nreps).zero_()
+test_err_gr14 = FloatTensor(len(meta_par_vals), Nreps).zero_()
+
+time_elapsed_pt = FloatTensor(len(meta_par_vals), Nreps).zero_()
+train_err_pt = FloatTensor(len(meta_par_vals), Nreps).zero_()
+test_err_pt = FloatTensor(len(meta_par_vals), Nreps).zero_()
+
+for i_b in range(len(meta_par_vals)):
+    Nepochs = meta_par_vals[i_b]
     for irep in range(Nreps):
         ##########################
         # GROUP 14 IMPLEMENTATION
@@ -64,7 +67,7 @@ for i_b in range(len(batch_sizes)):
                                  fc_out])
 
         # Loss function
-        loss_function_g14 = nn14.MSELoss()  # MSELoss(), NLLLoss(), CrossEntropyLoss()
+        loss_function_g14 = nn14.CrossEntropyLoss()  # MSELoss(), NLLLoss(), CrossEntropyLoss()
         if isinstance(loss_function_g14, nn14.MSELoss):
             assert one_hot is True, "Use one_hot targets with MSELoss"
 
@@ -77,7 +80,7 @@ for i_b in range(len(batch_sizes)):
         # Evaluate
         nb_train_err = nn14.compute_nb_errors(model, train_input, train_target, one_hot)
         nb_test_err = nn14.compute_nb_errors(model, test_input, test_target, one_hot)
-        print("Gr14 NN (rep {:d}/{:d}, bsize {:d}) Train error rate {}%, test error rate {}%".format(irep+1, Nreps, b_size, 100*nb_train_err/Ntrain, 100*nb_test_err/Ntest))
+        print("Gr14 NN (rep {:d}/{:d}, par val {}) Train error rate {}%, test error rate {}%".format(irep+1, Nreps, meta_par_vals[i_b], 100*nb_train_err/Ntrain, 100*nb_test_err/Ntest))
 
         # Store results
         time_elapsed_gr14[i_b, irep] = time.time() - t_start
@@ -94,7 +97,7 @@ for i_b in range(len(batch_sizes)):
         model = nnpt.create_miniproject2_model(non_lin_activation)
 
         # Loss function
-        loss_function = torch.nn.MSELoss()  #MSELoss, NLLLoss, CrossEntropyLoss
+        loss_function = torch.nn.CrossEntropyLoss()  #MSELoss, NLLLoss, CrossEntropyLoss
 
         # Optimizer
         optimizer = torch.optim.SGD(model.parameters(), lr=eta, momentum=momentum)
@@ -110,7 +113,7 @@ for i_b in range(len(batch_sizes)):
         # Evaluate and store results
         n_err_train = nnpt.compute_nb_errors(model, Variable(train_input), Variable(train_target), one_hot, b_size)
         n_err_test = nnpt.compute_nb_errors(model, Variable(test_input), Variable(test_target), one_hot, b_size)
-        print("PyTorch NN (rep {:d}/{:d}, bsize {:d}): train error {:g}%, test error {:g}%".format(irep+1, Nreps, b_size, n_err_train*100/Ntrain, n_err_test*100/Ntest))
+        print("PyTorch NN (rep {:d}/{:d}, par val {}): train error {:g}%, test error {:g}%".format(irep+1, Nreps, meta_par_vals[i_b], n_err_train*100/Ntrain, n_err_test*100/Ntest))
 
         time_elapsed_pt[i_b, irep] = time.time() - t_start
         train_err_pt[i_b, irep] = n_err_train*100/Ntrain
@@ -118,21 +121,19 @@ for i_b in range(len(batch_sizes)):
 
 # %% Plots
 import matplotlib.pyplot as plt
-fig_time = plt.figure()
-plt.semilogy(batch_sizes, time_elapsed_gr14.mean(dim=1).numpy(), '-ob', label="Group 14")
-plt.semilogy(batch_sizes, time_elapsed_pt.mean(dim=1).numpy(), '-xr', label="PyTorch")
-plt.xlabel("batch size", fontweight='bold')
-plt.ylabel("Time [s]", fontweight='bold')
+x_sh = 0.1*max(meta_par_vals)/len(meta_par_vals)
+xplt_1 = [p + x_sh for p in meta_par_vals]
+xplt_2 = [p - x_sh for p in meta_par_vals]
+fig = plt.figure()
+ax = plt.gca()
+# ax.set_xscale('log')
+plt.errorbar(meta_par_vals, train_err_gr14.mean(dim=1).numpy(), train_err_gr14.std(dim=1), fmt='-sb', label="Group 14 - train")
+plt.errorbar(xplt_1, test_err_gr14.mean(dim=1).numpy(), test_err_gr14.std(dim=1), fmt='-xb', label="Group 14 - test")
+plt.errorbar(meta_par_vals, train_err_pt.mean(dim=1).numpy(), train_err_pt.std(dim=1), fmt='-sr', label="PyTorch - train")
+plt.errorbar(xplt_2, test_err_pt.mean(dim=1).numpy(), test_err_pt.std(dim=1), fmt='-xr', label="PyTorch - test")
+plt.ylim((0, 55))
+plt.xlabel("number of epochs", fontweight='bold')
+plt.ylabel("Error rate [%]", fontweight='bold')
 plt.legend()
-fig_time.savefig("logtime_vs_bsize", format='eps')
+fig.savefig("error_vs_epochs_CE.eps", format='eps')
 
-speedup_gr14 = time_elapsed_gr14.mean(dim=1)[0]/time_elapsed_gr14.mean(dim=1)
-speedup_pt = time_elapsed_pt.mean(dim=1)[0]/time_elapsed_pt.mean(dim=1)
-
-fig_speedup = plt.figure()
-plt.plot(batch_sizes, speedup_gr14.numpy(), '-ob', label="Group 14")
-plt.plot(batch_sizes, speedup_pt.numpy(), '-xr', label="PyTorch")
-plt.xlabel("batch size", fontweight='bold')
-plt.ylabel("Speed-up", fontweight='bold')
-plt.legend()
-fig_speedup.savefig("speedup_vs_bsize", format='eps')
