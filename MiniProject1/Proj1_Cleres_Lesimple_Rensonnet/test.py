@@ -103,7 +103,7 @@ else:
     test_target = Variable(labels_test.float(), requires_grad=False)
     Noutputs = 1
 
-batch_size = 15
+batch_size = 7
 Nbatches = int(math.ceil(Ntrain/batch_size))
 Nepochs = 100
 seeds = list(range(15)) #Test 15 different seeds but always the seeds from 0 to 15 so that the weights are always initialized in a reproducible way
