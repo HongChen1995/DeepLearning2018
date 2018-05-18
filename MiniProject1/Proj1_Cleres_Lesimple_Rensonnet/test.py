@@ -118,11 +118,10 @@ for i_rep in range(Nrep):
     print('Repetition', seeds[i_rep])
     torch.manual_seed(seeds[i_rep])
     
-    #model = conv2DNet_1(Noutputs) #from classic knowledge of image segmentation  
-    #model = conv2DNet_2(Nchannels, Nsamples_100, Noutputs) #from litterature 
-    model = conv2DNet_3(Noutputs)  #from Temporal - Spatial; 4 Filters Model - Best performing model with accuracy 0.83 in average on the validation set
-    #model = conv2DNet_4(Noutputs) #from Temporal - Spatial; 64 Filters Model
-    #model = conv2DNet_5(Noutputs) #from Temporal - Spatial; 128 Filters Model
+    #model = conv2DNet_1(Nchannels, Nsamples_100, Noutputs) #from litterature EEG-Net coorected
+    model = conv2DNet_2(Noutputs)  #from Temporal - Spatial; 4 Filters Model - Best performing model with accuracy 0.83 in average on the validation set
+    #model = conv2DNet_3(Noutputs) #from Temporal - Spatial; 64 Filters Model
+    #model = conv2DNet_4(Noutputs) #from Temporal - Spatial; 128 Filters Model
     
     #optimizer = optim.SGD(model.parameters(), lr=1e-3, momentum=0.50)
     optimizer = optim.Adam(model.parameters())
