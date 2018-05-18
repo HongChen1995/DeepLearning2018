@@ -511,7 +511,7 @@ def preprocessing_train(train_input, train_target, subsampling_frequency='100Hz'
         for i in range (final_augmented_train_input_train.shape[0]):
             noiseIntensity = 0.1*np.max(final_augmented_train_input_train[i,:,:])
             noise_tensor[i, :, :] = noise(final_augmented_train_input_train[i,:,:], noiseIntensity)
-        return noise_tensor, final_augmented_train_input_validation, final_augmented_train_input_train_target, final_augmented_train_input_validation_target
+        return noise_tensor, final_augmented_train_input_validation, final_augmented_train_input_train_target, final_augmented_train_input_validation_target, tmp_idx
     
     return final_augmented_train_input_train, final_augmented_train_input_validation, final_augmented_train_input_train_target, final_augmented_train_input_validation_target, tmp_idx
 
