@@ -66,12 +66,12 @@ class conv2DNet_1(nn.Module):
         """
     
         # Layer 1
-        '''x = F.relu(self.conv1a(x))              # bsize x l1_channels x 1 x Nsamples
+        x = F.relu(self.conv1a(x))              # bsize x l1_channels x 1 x Nsamples
         x = self.batchnorm1a(x)
         x = F.relu(self.conv1b(x))              # bsize x l1_channels x 1 x Nsamples
         x = self.batchnorm1b(x)
         x = self.pooling1(x)
-        x = F.dropout2d(x, 0.5)'''
+        x = F.dropout2d(x, 0.5)
 
         # Layer 2
         x = self.conv2a(x)              # bsize x l1_channels x 1 x Nsamples
@@ -184,237 +184,10 @@ class conv2DNet_2(nn.Module):
         
         return x
      
+#Best Performing model         
 class conv2DNet_3(nn.Module):
     def __init__(self, output_units):
         super(conv2DNet_3, self).__init__()
-        
-        self.fc_inputs = 4*1*42
-        self.conv1 = nn.Conv2d(1, 4, (1, 5), dilation=2)
-        self.batchnorm1 = nn.BatchNorm2d(4,False)
-        self.conv2 = nn.Conv2d(4,4,(28,1))
-        self.batchnorm2 = nn.BatchNorm2d(4, False) # Normalize
-        self.fc1 = nn.Linear(self.fc_inputs,64)    
-        self.fc2 = nn.Linear(64, output_units)
-        
-    def forward(self,x):
-        
-        #print("input shape : {}".format(x.shape))
-        x = self.conv1(x)
-        #print("Shape after self.conv1(x) : {}".format(x.shape))
-        x = self.batchnorm1(x)
-        #print("Shape after self.batchnorm1(x) : {}".format(x.shape))
-        x = self.conv2(x)
-        #print("Shape after self.conv2(x) : {}".format(x.shape))
-        x = self.batchnorm2(x)
-        #print("Shape after self.batchnorm2(x) : {}".format(x.shape))
-        
-        #print(x.shape)
-        
-        x = x.view(-1,self.fc_inputs)
-        #print("Flatten shape for FC : {}".format(x.shape))
-        x = F.relu(self.fc1(x))
-        x = F.dropout(x,0.6)
-        #print("after fc1 : {}".format(x.shape))      
-        x = F.sigmoid(self.fc2(x))
-        
-        if self.fc2.out_features == 1:
-            x = x.view(-1)
-        
-        return x
-    
-class conv2DNet_4(nn.Module):
-    def __init__(self, output_units):
-        super(conv2DNet_4, self).__init__()
-        
-        #4*1*54 for 125 HZ 
-        #4*1*42 for 100 Hz signal 
-        self.fc_inputs = 4*1*42
-        self.conv1 = nn.Conv2d(1, 4, (1, 5), dilation=2)
-        self.batchnorm1 = nn.BatchNorm2d(4,False)
-        self.conv2 = nn.Conv2d(4,4,(28,1))
-        self.batchnorm2 = nn.BatchNorm2d(4, False) # Normalize
-        self.fc1 = nn.Linear(self.fc_inputs,4)   
-        self.fc2 = nn.Linear(4, output_units)
-        
-    def forward(self,x):
-        
-        #print("input shape : {}".format(x.shape))
-        x = self.conv1(x)
-        #print("Shape after self.conv1(x) : {}".format(x.shape))
-        x = self.batchnorm1(x)
-        #print("Shape after self.batchnorm1(x) : {}".format(x.shape))
-        x = self.conv2(x)
-        #print("Shape after self.conv2(x) : {}".format(x.shape))
-        x = self.batchnorm2(x)
-        #print("Shape after self.batchnorm2(x) : {}".format(x.shape))
-        
-        #print(x.shape)
-        
-        x = x.view(-1,self.fc_inputs)
-        #print("Flatten shape for FC : {}".format(x.shape))
-        x = F.relu(self.fc1(x))
-        x = F.dropout(x,0.6)
-        #print("after fc1 : {}".format(x.shape))      
-        x = F.sigmoid(self.fc2(x))
-        
-        if self.fc2.out_features == 1:
-            x = x.view(-1)
-        
-        return x
-    
-class conv2DNet_5(nn.Module):
-    def __init__(self, output_units):
-        super(conv2DNet_5, self).__init__()
-        
-        #4*1*54 for 125 HZ 
-        #4*1*42 for 100 Hz signal
-        self.fc_inputs = 64*1*42
-        self.conv1 = nn.Conv2d(1, 32, (1, 5), dilation=2)
-        self.batchnorm1 = nn.BatchNorm2d(32,False)
-        self.conv2 = nn.Conv2d(32,64,(28,1))
-        self.batchnorm2 = nn.BatchNorm2d(64, False) # Normalize
-        self.fc1 = nn.Linear(self.fc_inputs,64)   
-        self.fc2 = nn.Linear(64, output_units)
-        
-    def forward(self,x):
-        
-        #print("input shape : {}".format(x.shape))
-        x = self.conv1(x)
-        #print("Shape after self.conv1(x) : {}".format(x.shape))
-        x = self.batchnorm1(x)
-        #print("Shape after self.batchnorm1(x) : {}".format(x.shape))
-        x = self.conv2(x)
-        #print("Shape after self.conv2(x) : {}".format(x.shape))
-        x = self.batchnorm2(x)
-        #print("Shape after self.batchnorm2(x) : {}".format(x.shape))
-        
-        #print(x.shape)
-        
-        x = x.view(-1,self.fc_inputs)
-        #print("Flatten shape for FC : {}".format(x.shape))
-        x = F.relu(self.fc1(x))
-        x = F.dropout(x,0.6)
-        #print("after fc1 : {}".format(x.shape))      
-        x = F.sigmoid(self.fc2(x))
-        
-        if self.fc2.out_features == 1:
-            x = x.view(-1)       
-        return x
-    
-class conv2DNet_6(nn.Module):
-    def __init__(self, output_units):
-        super(conv2DNet_6, self).__init__()
-        
-        #4*1*54 for 125 HZ 
-        #4*1*42 for 100 Hz signal
-        self.fc_inputs = 128*1*42
-        self.conv1 = nn.Conv2d(1, 64, (1, 5), dilation=2)
-        self.batchnorm1 = nn.BatchNorm2d(64,False)
-        self.conv2 = nn.Conv2d(64,128,(28,1))
-        self.batchnorm2 = nn.BatchNorm2d(128, False) # Normalize
-        self.fc1 = nn.Linear(self.fc_inputs,64)   
-        self.fc2 = nn.Linear(64, output_units)
-        
-    def forward(self,x):
-        
-        #print("input shape : {}".format(x.shape))
-        x = self.conv1(x)
-        #print("Shape after self.conv1(x) : {}".format(x.shape))
-        x = self.batchnorm1(x)
-        #print("Shape after self.batchnorm1(x) : {}".format(x.shape))
-        x = self.conv2(x)
-        #print("Shape after self.conv2(x) : {}".format(x.shape))
-        x = self.batchnorm2(x)
-        #print("Shape after self.batchnorm2(x) : {}".format(x.shape))
-        
-        #print(x.shape)
-        
-        x = x.view(-1,self.fc_inputs)
-        #print("Flatten shape for FC : {}".format(x.shape))
-        x = F.relu(self.fc1(x))
-        x = F.dropout(x,0.6)
-        #print("after fc1 : {}".format(x.shape))      
-        x = F.sigmoid(self.fc2(x))
-        
-        if self.fc2.out_features == 1:
-            x = x.view(-1)       
-        return x
-    
-class conv2DNet_7(nn.Module):
-    def __init__(self, output_units):
-        super(conv2DNet_7, self).__init__()
-        
-        self.fc_inputs = 64*3*60
-        self.conv1 = nn.Conv2d(1, 32, (1, 3), dilation=2, padding=1)
-        self.batchnorm1 = nn.BatchNorm2d(32,False)
-        self.conv2 = nn.Conv2d(32,64,(28,1))
-        self.batchnorm2 = nn.BatchNorm2d(64, False) # Normalize
-        self.fc1 = nn.Linear(self.fc_inputs,64)   
-        self.fc2 = nn.Linear(64, output_units)
-        
-    def forward(self,x):
-        
-        #print("input shape : {}".format(x.shape))
-        x = self.conv1(x)
-        #print("Shape after self.conv1(x) : {}".format(x.shape))
-        x = self.batchnorm1(x)
-        #print("Shape after self.batchnorm1(x) : {}".format(x.shape))
-        x = self.conv2(x)
-        #print("Shape after self.conv2(x) : {}".format(x.shape))
-        x = self.batchnorm2(x)
-        #print("Shape after self.batchnorm2(x) : {}".format(x.shape))
-        
-        #print(x.shape)
-        
-        x = x.view(-1,self.fc_inputs)
-        #print("Flatten shape for FC : {}".format(x.shape))
-        x = F.relu(self.fc1(x))
-        x = F.dropout(x,0.6)
-        #print("after fc1 : {}".format(x.shape))      
-        x = F.sigmoid(self.fc2(x))
-        
-        if self.fc2.out_features == 1:
-            x = x.view(-1)       
-        return x
-     
-#only one non linear activation model         
-class conv2DNet_8(nn.Module):
-    def __init__(self, output_units):
-        super(conv2DNet_8, self).__init__()
-        
-        #4*1*54 for 125 HZ 
-        #4*1*42 for 100 Hz signal 
-        self.conv = torch.nn.Sequential()
-        self.conv.add_module("conv_1", torch.nn.Conv2d(1, 10, kernel_size=5))
-        self.conv.add_module("maxpool_1", torch.nn.MaxPool2d(kernel_size=2))
-        self.conv.add_module("relu_1", torch.nn.ReLU())
-        self.conv.add_module("conv_2", torch.nn.Conv2d(10, 20, kernel_size=5))
-        self.conv.add_module("dropout_2", torch.nn.Dropout())
-        self.conv.add_module("maxpool_2", torch.nn.MaxPool2d(kernel_size=2))
-        self.conv.add_module("relu_2", torch.nn.ReLU())
-
-        self.fc = torch.nn.Sequential()
-        self.fc.add_module("fc1", torch.nn.Linear(320, 50))
-        self.fc.add_module("relu_3", torch.nn.ReLU())
-        self.fc.add_module("dropout_3", torch.nn.Dropout())
-        self.fc.add_module("fc2", torch.nn.Linear(50, output_dim))
-        
-        self.fc_inputs = 4*1*42
-        self.conv1 = nn.Conv2d(1, 4, (1, 5), dilation=2)
-        self.batchnorm1 = nn.BatchNorm2d(4,False)
-        self.conv2 = nn.Conv2d(4,4,(28,1))
-        self.batchnorm2 = nn.BatchNorm2d(4, False) # Normalize
-        self.fc1 = nn.Linear(self.fc_inputs,4)   
-        self.fc2 = nn.Linear(4, output_units)
-        
-    def forward(self,x):
-        x = self.conv.forward(x)
-        x = x.view(-1, 320)
-        return self.fc.forward(x)
-            
-class conv2DNet_9(nn.Module):
-    def __init__(self, output_units):
-        super(conv2DNet_9, self).__init__()
         
         #4*1*54 for 125 HZ 
         #4*1*42 for 100 Hz signal 
@@ -422,17 +195,67 @@ class conv2DNet_9(nn.Module):
         
         self.conv = torch.nn.Sequential()
         self.conv.add_module("conv_1", torch.nn.Conv2d(1, 4, kernel_size=(1,5), dilation=2))
-        #self.conv.add_module("relu_1", torch.nn.ReLU())
         self.conv.add_module("BN_1", torch.nn.BatchNorm2d(4, False))                     
         self.conv.add_module("conv_2", torch.nn.Conv2d(4, 4, kernel_size=(28,1)))
         self.conv.add_module("BN_2", torch.nn.BatchNorm2d(4, False))
-        #self.conv.add_module("dropout_2", torch.nn.Dropout())
 
         self.fc = torch.nn.Sequential()
         self.fc.add_module("fc1", torch.nn.Linear(self.fc_inputs, 4))
         self.fc.add_module("relu_3", torch.nn.ReLU())
-        self.fc.add_module("dropout_3", torch.nn.Dropout())
+        self.fc.add_module("dropout_3", torch.nn.Dropout(0.2))
         self.fc.add_module("fc2", torch.nn.Linear(4, output_units)) #add batch_norms
+        self.fc.add_module("sig_1", torch.nn.Sigmoid()) 
+        
+    def forward(self,x):     
+        x = self.conv.forward(x)
+        x = x.view(-1, self.fc_inputs)
+        return self.fc.forward(x)
+    
+#Medium Model 
+class conv2DNet_4(nn.Module):
+    def __init__(self, output_units):
+        super(conv2DNet_4, self).__init__()
+        
+        #4*1*54 for 125 HZ 
+        #4*1*42 for 100 Hz signal
+        self.fc_inputs = 64*1*42        
+        self.conv = torch.nn.Sequential()
+        self.conv.add_module("conv_1", torch.nn.Conv2d(1, 32, kernel_size=(1,5), dilation=2))
+        self.conv.add_module("BN_1", torch.nn.BatchNorm2d(32, False))                     
+        self.conv.add_module("conv_2", torch.nn.Conv2d(32, 64, kernel_size=(28,1)))
+        self.conv.add_module("BN_2", torch.nn.BatchNorm2d(64, False))
+
+        self.fc = torch.nn.Sequential()
+        self.fc.add_module("fc1", torch.nn.Linear(self.fc_inputs, 64))
+        self.fc.add_module("relu_3", torch.nn.ReLU())
+        self.fc.add_module("dropout_3", torch.nn.Dropout(0.2))
+        self.fc.add_module("fc2", torch.nn.Linear(64, output_units)) #add batch_norms
+        self.fc.add_module("sig_1", torch.nn.Sigmoid()) 
+        
+    def forward(self,x):     
+        x = self.conv.forward(x)
+        x = x.view(-1, self.fc_inputs)
+        return self.fc.forward(x)
+    
+#Heavy Model 
+class conv2DNet_5(nn.Module):
+    def __init__(self, output_units):
+        super(conv2DNet_5, self).__init__()
+        
+        #4*1*54 for 125 HZ 
+        #4*1*42 for 100 Hz signal
+        self.fc_inputs = 128*1*42        
+        self.conv = torch.nn.Sequential()
+        self.conv.add_module("conv_1", torch.nn.Conv2d(1, 64, kernel_size=(1,5), dilation=2))
+        self.conv.add_module("BN_1", torch.nn.BatchNorm2d(64, False))                     
+        self.conv.add_module("conv_2", torch.nn.Conv2d(64, 128, kernel_size=(28,1)))
+        self.conv.add_module("BN_2", torch.nn.BatchNorm2d(128, False))
+
+        self.fc = torch.nn.Sequential()
+        self.fc.add_module("fc1", torch.nn.Linear(self.fc_inputs, 128))
+        self.fc.add_module("relu_3", torch.nn.ReLU())
+        self.fc.add_module("dropout_3", torch.nn.Dropout(0.2))
+        self.fc.add_module("fc2", torch.nn.Linear(128, output_units)) #add batch_norms
         self.fc.add_module("sig_1", torch.nn.Sigmoid()) 
         
     def forward(self,x):     

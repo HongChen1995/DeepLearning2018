@@ -511,7 +511,7 @@ def preprocessing_train(train_input, train_target, subsampling_frequency='100Hz'
         for i in range (final_augmented_train_input_train.shape[0]):
             noiseIntensity = 0.1*np.max(final_augmented_train_input_train[i,:,:])
             noise_tensor[i, :, :] = noise(final_augmented_train_input_train[i,:,:], noiseIntensity)
-        return noise_tensor, final_augmented_train_input_validation, final_augmented_train_input_train_target, final_augmented_train_input_validation_target
+        return noise_tensor, final_augmented_train_input_validation, final_augmented_train_input_train_target, final_augmented_train_input_validation_target, tmp_idx
     
     return final_augmented_train_input_train, final_augmented_train_input_validation, final_augmented_train_input_train_target, final_augmented_train_input_validation_target, tmp_idx
 
@@ -634,12 +634,10 @@ def compute_nb_errors(model, data_input, data_target, batch_size, criterion):
     for b_start in range(0, Ndata, batch_size):
         bsize_eff = batch_size - max(0, b_start+batch_size-Ndata)  # boundary case
         batch_output = model.forward(data_input.narrow(0, b_start, bsize_eff))  # is Variable if data_input is Variable
-        if isinstance(criterion, nn.CrossEntropyLoss) or isinstance(criterion, nn.NLLLoss):
-            # as many ouputs as there are classes => select maximum output
+        if isinstance(criterion, nn.CrossEntropyLoss) or isinstance(criterion, nn.NLLLoss): #return 2D tensor of size [bsize_eff, 2]
             nb_err_batch = (batch_output.max(1)[1] != data_target.narrow(0, b_start, bsize_eff)).long().sum()
-            # overflow problem if conversion to Long Int not performed, treated as short 1-byte int otherwise!!
         else:
-            # output is a scalar in [0, 1]
+            # output is a 1D Tensor of size bsize_eff
             batch_output=batch_output.view(bsize_eff)
             nb_err_batch = batch_output.round().sub(data_target.narrow(0, b_start, bsize_eff)).sign().abs().sum()
         
