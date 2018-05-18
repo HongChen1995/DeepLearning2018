@@ -81,12 +81,12 @@ test_input = Variable(preprocessed_input_test.contiguous().view(Ntest, 1, Nchann
 ################################### NETWORK TRAINING AND TESTING ###############################
 ################################################################################################
 # Train network 
-#criterion = nn.BCELoss()
+criterion = nn.BCELoss()
 #criterion = nn.CrossEntropyLoss()
 #criterion = nn.PoissonNLLLoss()
 #criterion = nn.BCEWithLogitsLoss()
-#criterion = nn.SmoothL1Loss() #interesting ... but does not converge
-criterion = nn.MSELoss() #0.83 but unstable
+#criterion = nn.SmoothL1Loss()
+#criterion = nn.MSELoss()
 
 if isinstance(criterion, nn.CrossEntropyLoss):
     train_target = Variable(labels_train)  # keep long tensors
@@ -109,8 +109,7 @@ else:
 batch_size = 15
 Nbatches = int(math.ceil(Ntrain/batch_size))
 Nepochs = 50
-seeds = list(range(10)) #Test 10 different seeds 
-#seeds = [14,20,21,22,27,46,44,37,31,28]
+seeds = list(range(10)) #Test 15 different seeds but always the seeds from 0 to 15 so that the weights are always initialized in a reproducible way
 Nrep = len(seeds)
 
 train_errors = torch.Tensor(Nrep, Nepochs).zero_()
@@ -124,10 +123,9 @@ for i_rep in range(Nrep):
     
     #model = conv2DNet_1(Noutputs) #from classic knowledge of image segmentation  
     #model = conv2DNet_2(Nchannels, Nsamples_100, Noutputs) #from litterature 
-    #model = conv2DNet_3(Noutputs) #from Paper
-    #model = conv2DNet_4(Noutputs)  #from Temporal - Spatial; 4 Filters Model
-    model = conv2DNet_5(Noutputs) #from Temporal - Spatial; 64 Filters Model
-    #model = conv2DNet_6(Noutputs) #from Temporal - Spatial; 128 Filters Model
+    model = conv2DNet_3(Noutputs)  #from Temporal - Spatial; 4 Filters Model - Best performing model with accuracy 0.83 in average on the validation set
+    #model = conv2DNet_4(Noutputs) #from Temporal - Spatial; 64 Filters Model
+    #model = conv2DNet_5(Noutputs) #from Temporal - Spatial; 128 Filters Model
     
     #optimizer = optim.SGD(model.parameters(), lr=1e-3, momentum=0.50)
     optimizer = optim.Adam(model.parameters())
@@ -137,7 +135,7 @@ for i_rep in range(Nrep):
     #optimizer = optim.RMSprop(model.parameters())
     #optimizer = optim.Rprop(model.parameters())
     
-    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', patience=10, verbose=True)
+    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', patience=10, verbose=True) #Reduces the learning rate if it did not decreased by more than 10^-4 in 10 steps
 
     for i_ep in range(Nepochs):
         for b_start in range(0, Ntrain, batch_size):
@@ -160,7 +158,6 @@ for i_rep in range(Nrep):
         print("\t Training accuracy: ", (100*(Ntrain-nb_train_errs)/Ntrain))
         print("\t Validation accuracy ",(100*(Nvalidation-nb_validation_errs)/Nvalidation)) 
         print("\t Test accuracy ",(100*(Ntest-nb_test_errs)/Ntest))
-        
         print("\t Epoch Loss ", ep_loss[i_rep, i_ep])
         
         train_errors[i_rep, i_ep] = nb_train_errs
@@ -184,12 +181,6 @@ mean_val_errors = np.mean(val_accuracy, axis=0)
 mean_test_errors = np.mean(test_accuracy, axis=0)
 
 epoch = list(range(50))
-print(stddev_train_errors.shape)
-
-#plt.errorbar(epoch, mean_train_errors, stddev_train_errors)
-#plt.errorbar(epoch, mean_val_errors, stddev_val_errors)
-#plt.errorbar(epoch, mean_test_errors, stddev_test_errors)
-
 plt.plot(epoch, mean_train_errors)
 plt.plot(epoch, mean_val_errors)
 plt.plot(epoch, mean_test_errors)
