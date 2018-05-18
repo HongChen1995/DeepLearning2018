@@ -15,10 +15,8 @@ class conv2DNet_1(nn.Module):
             loss torch.nn.CrossEntropyLoss            
             
             """
-        super(conv2DNet_1, self).__init__()
-        
+        super(conv2DNet_1, self).__init__() 
         self.fc_inputs = 64*32*12
-        
         # Layer 1
         channelsConv1a = 8
         channelsConv1b = 16
@@ -307,7 +305,9 @@ class conv2DNet_6(nn.Module):
     def __init__(self, output_units):
         super(conv2DNet_6, self).__init__()
         
-        self.fc_inputs = 128*1*54
+        #4*1*54 for 125 HZ 
+        #4*1*42 for 100 Hz signal
+        self.fc_inputs = 128*1*42
         self.conv1 = nn.Conv2d(1, 64, (1, 5), dilation=2)
         self.batchnorm1 = nn.BatchNorm2d(64,False)
         self.conv2 = nn.Conv2d(64,128,(28,1))
@@ -384,7 +384,6 @@ class conv2DNet_8(nn.Module):
         
         #4*1*54 for 125 HZ 
         #4*1*42 for 100 Hz signal 
-        
         self.conv = torch.nn.Sequential()
         self.conv.add_module("conv_1", torch.nn.Conv2d(1, 10, kernel_size=5))
         self.conv.add_module("maxpool_1", torch.nn.MaxPool2d(kernel_size=2))
@@ -409,19 +408,16 @@ class conv2DNet_8(nn.Module):
         self.fc2 = nn.Linear(4, output_units)
         
     def forward(self,x):
-        
         x = self.conv.forward(x)
         x = x.view(-1, 320)
         return self.fc.forward(x)
             
-    #only one non linear activation model         
 class conv2DNet_9(nn.Module):
     def __init__(self, output_units):
         super(conv2DNet_9, self).__init__()
         
         #4*1*54 for 125 HZ 
         #4*1*42 for 100 Hz signal 
-        
         self.fc_inputs = 4*1*42
         
         self.conv = torch.nn.Sequential()
@@ -436,12 +432,10 @@ class conv2DNet_9(nn.Module):
         self.fc.add_module("fc1", torch.nn.Linear(self.fc_inputs, 4))
         self.fc.add_module("relu_3", torch.nn.ReLU())
         self.fc.add_module("dropout_3", torch.nn.Dropout())
-        self.fc.add_module("fc2", torch.nn.Linear(4, output_dim)) #add batch_norms
+        self.fc.add_module("fc2", torch.nn.Linear(4, output_units)) #add batch_norms
         self.fc.add_module("sig_1", torch.nn.Sigmoid()) 
         
-        
-    def forward(self,x):
-        
+    def forward(self,x):     
         x = self.conv.forward(x)
         x = x.view(-1, self.fc_inputs)
         return self.fc.forward(x)

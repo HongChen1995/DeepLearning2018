@@ -270,7 +270,7 @@ class conv2DNet_5(nn.Module):
         
         #4*1*54 for 125 HZ 
         #4*1*42 for 100 Hz signal
-        self.fc_inputs = 64*1*42
+        self.fc_inputs = 64*1*54
         self.conv1 = nn.Conv2d(1, 32, (1, 5), dilation=2)
         self.batchnorm1 = nn.BatchNorm2d(32,False)
         self.conv2 = nn.Conv2d(32,64,(28,1))
@@ -307,7 +307,9 @@ class conv2DNet_6(nn.Module):
     def __init__(self, output_units):
         super(conv2DNet_6, self).__init__()
         
-        self.fc_inputs = 128*1*54
+        #4*1*54 for 125 HZ 
+        #4*1*42 for 100 Hz signal
+        self.fc_inputs = 128*1*42
         self.conv1 = nn.Conv2d(1, 64, (1, 5), dilation=2)
         self.batchnorm1 = nn.BatchNorm2d(64,False)
         self.conv2 = nn.Conv2d(64,128,(28,1))
@@ -422,7 +424,7 @@ class conv2DNet_9(nn.Module):
         #4*1*54 for 125 HZ 
         #4*1*42 for 100 Hz signal 
         
-        self.fc_inputs = 4*1*42
+        self.fc_inputs = 4*1*54
         
         self.conv = torch.nn.Sequential()
         self.conv.add_module("conv_1", torch.nn.Conv2d(1, 4, kernel_size=(1,5), dilation=2))
@@ -436,7 +438,7 @@ class conv2DNet_9(nn.Module):
         self.fc.add_module("fc1", torch.nn.Linear(self.fc_inputs, 4))
         self.fc.add_module("relu_3", torch.nn.ReLU())
         self.fc.add_module("dropout_3", torch.nn.Dropout())
-        self.fc.add_module("fc2", torch.nn.Linear(4, output_dim)) #add batch_norms
+        self.fc.add_module("fc2", torch.nn.Linear(4, output_units)) #add batch_norms
         self.fc.add_module("sig_1", torch.nn.Sigmoid()) 
         
         

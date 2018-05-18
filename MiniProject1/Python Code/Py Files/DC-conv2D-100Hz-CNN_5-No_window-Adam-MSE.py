@@ -152,9 +152,9 @@ for i_rep in range(Nrep):
         
         scheduler.step(ep_loss[i_rep, i_ep])
         
-        nb_train_errs = compute_nb_errors(model, train_input, train_target, batch_size)
-        nb_validation_errs = compute_nb_errors(model, validation_input, validation_target, batch_size)
-        nb_test_errs = compute_nb_errors(model, test_input, test_target, batch_size)
+        nb_train_errs = compute_nb_errors(model, train_input, train_target, batch_size, criterion)
+        nb_validation_errs = compute_nb_errors(model, validation_input, validation_target, batch_size, criterion)
+        nb_test_errs = compute_nb_errors(model, test_input, test_target, batch_size, criterion)
         
         print("Epoch Number : ", i_ep)
         print("\t Training accuracy: ", (100*(Ntrain-nb_train_errs)/Ntrain))
