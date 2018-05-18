@@ -38,4 +38,6 @@ enables to visualized the EEG signal per electrode for all the patients. It was 
 ### MLP.ipynb
 This code implemented the fully connected neural network of the report. 
 
+# Excel File 
+The excel file attached to the submission contained SOME of the results that we got by running the neural networks and the claissfiers. A lot has been done on paper at the beginning or only to see if a certain architecture was working. Once the architectures were fixed we tried to work together on this sheet. 
 
